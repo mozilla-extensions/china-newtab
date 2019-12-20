@@ -1,0 +1,20 @@
+[
+  {
+    "namespace": "mozillaonline.chinaNewtab",
+    "description": "China newtab",
+    "functions": [
+      {
+        "name": "updateTopSites",
+        "type": "function",
+        "description": "Update pinned topSites",
+        "parameters": [
+          {
+            "type": "any",
+            "name": "event"
+          }
+        ],
+        "async": "true"
+      }
+    ]
+  }
+]

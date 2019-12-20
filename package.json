@@ -1,0 +1,16 @@
+{
+  "name": "china-newtab",
+  "version": "4.71.0",
+  "description": "Customizied New Tab Page for Firefox",
+  "scripts": {
+    "lint": "eslint --ext .js,.jsm extension"
+  },
+  "author": "Mozilla Online Limited",
+  "license": "MPL-2.0",
+  "repository": "ssh://git@git.mozilla.com.cn/repository/git/repositories/china-newtab.git",
+  "devDependencies": {
+    "eslint": "5.16.0",
+    "eslint-plugin-mozilla": "1.2.1",
+    "eslint-plugin-no-unsanitized": "3.0.2"
+  }
+}
