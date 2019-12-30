@@ -9,7 +9,7 @@ var EXPORTED_SYMBOLS = ["ChinaNewtabContentThemeParent"];
 class ChinaNewtabContentThemeParent extends JSWindowActorParent {
   receiveMessage(msg) {
     try {
-      let browser = msg.target.browsingContext.embedderElement;
+      let browser = msg.target.manager.browsingContext.embedderElement;
       return browser.ownerGlobal.windowUtils.outerWindowID;
     } catch (ex) {
       // Will this happen ?

@@ -59,7 +59,7 @@ this.activityStreamHack = {
         for (let [key, val] of [
           ["browser.newtabpage.activity-stream.discoverystream.config", JSON.stringify({
             "collapsible": true,
-            "enabled": true,
+            "enabled": false,
             "show_spocs": false,
             "hardcoded_layout": false,
             "personalized": false,

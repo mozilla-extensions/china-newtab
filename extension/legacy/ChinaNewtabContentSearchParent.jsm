@@ -45,9 +45,11 @@ var ChinaNewtabProperties = {
 
 class ChinaNewtabContentSearchParent extends JSWindowActorParent {
   receiveMessage(msg) {
-    actorsMap.set(this.browsingContext.id, this);
+    // Use `this.manager.browsingContext` instead of `this.browsingContext`
+    // for Fx 68 compat, see https://bugzil.la/1557062
+    actorsMap.set(this.manager.browsingContext.id, this);
 
-    msg.target = this.browsingContext.embedderElement;
+    msg.target = this.manager.browsingContext.embedderElement;
     ChinaContentSearch.receiveMessage(msg);
   }
 
@@ -56,6 +58,6 @@ class ChinaNewtabContentSearchParent extends JSWindowActorParent {
       return;
     }
 
-    actorsMap.delete(this.browsingContext.id);
+    actorsMap.delete(this.manager.browsingContext.id);
   }
 }
