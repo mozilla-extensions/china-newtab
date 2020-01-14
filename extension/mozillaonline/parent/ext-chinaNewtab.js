@@ -110,25 +110,44 @@ this.activityStreamHack = {
   },
 
   initRemotePages() {
-    if (AboutNewTab.activityStream) {
-      let ASMessageChannel = AboutNewTab.activityStream.store._messageChannel;
-      if (!ASMessageChannel.channel.urls.includes(NEWTAB_URL)) {
-        // Hack to add another url w/o reinitialize this RemotePages channel
-        ASMessageChannel.channel.urls.push(NEWTAB_URL);
-        ASMessageChannel.channel.mococnPortCreated = remotePages.prototype.portCreated.bind(ASMessageChannel.channel);
-        RemotePageManager.addRemotePageListener(NEWTAB_URL, ASMessageChannel.channel.mococnPortCreated);
+    let branch = "initial";
+    try {
+      if (AboutNewTab.activityStream) {
+        let ASMessageChannel = AboutNewTab.activityStream.store._messageChannel;
+        if (!ASMessageChannel.channel.urls.includes(NEWTAB_URL)) {
+          // Hack to add another url w/o reinitialize this RemotePages channel
+          ASMessageChannel.channel.urls.push(NEWTAB_URL);
+          ASMessageChannel.channel.mococnPortCreated = remotePages.prototype.portCreated.bind(ASMessageChannel.channel);
+          RemotePageManager.addRemotePageListener(NEWTAB_URL, ASMessageChannel.channel.mococnPortCreated);
+          branch = "as_missing";
+        } else {
+          branch = "as_existed";
+        }
+      } else if (AboutNewTab.pageListener) {
+        let urls = AboutNewTab.pageListener.urls;
+        if (!urls.includes(NEWTAB_URL)) {
+          AboutNewTab.pageListener.destroy();
+          AboutNewTab.pageListener = new remotePages(urls.concat([NEWTAB_URL]));
+          branch = "pl_missing";
+        } else {
+          branch = "pl_existed";
+        }
+      } else {
+        branch = "not_ready";
+        console.error(`AboutNewTab not initialized?`);
       }
-      console.log(`ASMessageChannel.channel.urls is ${ASMessageChannel.channel.urls}`);
-    } else if (AboutNewTab.pageListener) {
-      let urls = AboutNewTab.pageListener.urls;
-      if (!urls.includes(NEWTAB_URL)) {
-        AboutNewTab.pageListener.destroy();
-        AboutNewTab.pageListener = new remotePages(urls.concat([NEWTAB_URL]));
-      }
-      console.log(`AboutNewTab.pageListener.urls is ${AboutNewTab.pageListener.urls}`);
-    } else {
-      console.error(`AboutNewTab not initialized?`);
+    } catch (ex) {
+      branch = "error";
+      console.error(ex);
     }
+
+    console.log("activityStreamHack.initRemotePages", branch);
+    ChinaNewtabFeed.sendTracking(
+      "chinaNewtab",
+      "init",
+      "remotePages",
+      branch
+    );
   },
 
   observe(subject, topic, data) {
@@ -208,43 +227,51 @@ this.contentSearch = {
   callbacks: new WeakMap(),
 
   init() {
-    ChromeUtils.registerWindowActor("ChinaNewtabContentSearch", {
-      parent: {
-        moduleURI: `resource://${RESOURCE_HOST}/ChinaNewtabContentSearchParent.jsm`,
-      },
-      child: {
-        moduleURI: `resource://${RESOURCE_HOST}/ChinaNewtabContentSearchChild.jsm`,
-        events: {
-          ContentSearchClient: { capture: true, wantUntrusted: true },
+    try {
+      ChromeUtils.registerWindowActor("ChinaNewtabContentSearch", {
+        parent: {
+          moduleURI: `resource://${RESOURCE_HOST}/ChinaNewtabContentSearchParent.jsm`,
         },
-      },
-      matches: [
-        "https://newtab.firefoxchina.cn/*",
-      ],
-    });
+        child: {
+          moduleURI: `resource://${RESOURCE_HOST}/ChinaNewtabContentSearchChild.jsm`,
+          events: {
+            ContentSearchClient: { capture: true, wantUntrusted: true },
+          },
+        },
+        matches: [
+          "https://newtab.firefoxchina.cn/*",
+        ],
+      });
+    } catch (ex) {
+      console.error(ex);
+    }
   },
 
   uninit() {
-    ChromeUtils.unregisterWindowActor("ChinaNewtabContentTheme");
+    ChromeUtils.unregisterWindowActor("ChinaNewtabContentSearch");
   },
 };
 
 this.ntpColors = {
   init() {
-    ChromeUtils.registerWindowActor("ChinaNewtabContentTheme", {
-      parent: {
-        moduleURI: `resource://${RESOURCE_HOST}/ChinaNewtabContentThemeParent.jsm`,
-      },
-      child: {
-        moduleURI: `resource://${RESOURCE_HOST}/ChinaNewtabContentThemeChild.jsm`,
-        events: {
-          pageshow: { mozSystemGroup: true },
+    try {
+      ChromeUtils.registerWindowActor("ChinaNewtabContentTheme", {
+        parent: {
+          moduleURI: `resource://${RESOURCE_HOST}/ChinaNewtabContentThemeParent.jsm`,
         },
-      },
-      matches: [
-        "https://newtab.firefoxchina.cn/*",
-      ],
-    });
+        child: {
+          moduleURI: `resource://${RESOURCE_HOST}/ChinaNewtabContentThemeChild.jsm`,
+          events: {
+            pageshow: { mozSystemGroup: true },
+          },
+        },
+        matches: [
+          "https://newtab.firefoxchina.cn/*",
+        ],
+      });
+    } catch (ex) {
+      console.error(ex);
+    }
   },
 
   uninit() {

@@ -38,7 +38,7 @@ class ChinaNewtabFeed {
           let topSitesRows = TopSites.pref.collapsed
                            ? 0
                            : Prefs.values.topSitesRows;
-          await this.sendTracking(
+          await this.constructor.sendTracking(
             "chinaNewtab",
             "rows",
             "top_sites",
@@ -55,7 +55,7 @@ class ChinaNewtabFeed {
         let topStoriesRows = topStories.pref.collapsed
                            ? 0
                            : Prefs.values["section.topstories.rows"];
-        await this.sendTracking(
+        await this.constructor.sendTracking(
           "chinaNewtab",
           "rows",
           "top_stories",
@@ -63,7 +63,7 @@ class ChinaNewtabFeed {
         );
         break;
       case at.NEW_TAB_LOAD:
-        await this.sendTracking(
+        await this.constructor.sendTracking(
           "chinaNewtab",
           "load",
           "view",
@@ -79,7 +79,7 @@ class ChinaNewtabFeed {
           break;
         }
 
-        await this.sendTracking(
+        await this.constructor.sendTracking(
           "chinaNewtab",
           event.toLowerCase(),
           source.toLowerCase(),
@@ -87,7 +87,7 @@ class ChinaNewtabFeed {
         );
         break;
       case at.TOP_SITES_PIN:
-        await this.sendTracking(
+        await this.constructor.sendTracking(
           "chinaNewtab",
           "saved",
           "top_sites",
@@ -100,7 +100,7 @@ class ChinaNewtabFeed {
   }
 
   // Make this somewhat compatible with `browser.telemetry.recordEvent`?
-  async sendTracking(category, method, object, value = "notSet", extra = "") {
+  static sendTracking(category, method, object, value = "notSet", extra = "") {
     let url = new URL(TRACKING_BASE);
     url.searchParams.append("c", category);
     url.searchParams.append("t", object);
