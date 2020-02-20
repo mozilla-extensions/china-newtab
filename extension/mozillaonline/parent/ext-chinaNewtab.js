@@ -111,6 +111,7 @@ this.activityStreamHack = {
 
   initRemotePages() {
     let branch = "initial";
+    let errMsg = "";
     try {
       if (AboutNewTab.activityStream) {
         let ASMessageChannel = AboutNewTab.activityStream.store._messageChannel;
@@ -138,6 +139,7 @@ this.activityStreamHack = {
       }
     } catch (ex) {
       branch = "error";
+      errMsg = ex.toString();
       console.error(ex);
     }
 
@@ -146,7 +148,8 @@ this.activityStreamHack = {
       "chinaNewtab",
       "init",
       "remotePages",
-      branch
+      branch,
+      errMsg
     );
   },
 
