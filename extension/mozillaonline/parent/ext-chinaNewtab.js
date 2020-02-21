@@ -259,9 +259,6 @@ this.ntpColors = {
   init() {
     try {
       ChromeUtils.registerWindowActor("ChinaNewtabContentTheme", {
-        parent: {
-          moduleURI: `resource://${RESOURCE_HOST}/ChinaNewtabContentThemeParent.jsm`,
-        },
         child: {
           moduleURI: `resource://${RESOURCE_HOST}/ChinaNewtabContentThemeChild.jsm`,
           events: {
