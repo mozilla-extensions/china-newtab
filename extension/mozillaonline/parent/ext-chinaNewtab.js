@@ -17,6 +17,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   RemotePages: "resource://gre/modules/remotepagemanager/RemotePageManagerParent.jsm",
   SectionsManager: "resource://activity-stream/lib/SectionsManager.jsm",
   Services: "resource://gre/modules/Services.jsm",
+  TelemetryTimestamps: "resource://gre/modules/TelemetryTimestamps.jsm",
 });
 XPCOMUtils.defineLazyGlobalGetters(this, ["URL", "fetch"]);
 
@@ -113,18 +114,17 @@ this.activityStreamHack = {
     let branch = "initial";
     let errMsg = "";
     try {
-      if (AboutNewTab.activityStream) {
-        let ASMessageChannel = AboutNewTab.activityStream.store._messageChannel;
-        if (!ASMessageChannel.channel.urls.includes(NEWTAB_URL)) {
-          // Hack to add another url w/o reinitialize this RemotePages channel
-          ASMessageChannel.channel.urls.push(NEWTAB_URL);
-          ASMessageChannel.channel.mococnPortCreated = remotePages.prototype.portCreated.bind(ASMessageChannel.channel);
-          RemotePageManager.addRemotePageListener(NEWTAB_URL, ASMessageChannel.channel.mococnPortCreated);
-          branch = "as_missing";
-        } else {
-          branch = "as_existed";
-        }
-      } else if (AboutNewTab.pageListener) {
+      errMsg = (
+        (TelemetryTimestamps.get().delayedStartupFinished ? 1 : 0) +
+        (Services.startup.getStartupInfo().sessionRestored ? 2 : 0)
+      ).toString();
+    } catch (ex) {
+      errMsg = "-1";
+      console.error(ex);
+    }
+    try {
+      if (AboutNewTab.pageListener) {
+        // After `AboutNewTab.init`
         let urls = AboutNewTab.pageListener.urls;
         if (!urls.includes(NEWTAB_URL)) {
           AboutNewTab.pageListener.destroy();
@@ -133,9 +133,28 @@ this.activityStreamHack = {
         } else {
           branch = "pl_existed";
         }
+        // Before `AboutNewTab.activityStream.store._initIndexedDB` returns
+      } else if (AboutNewTab.activityStream) {
+        // After `AboutNewTab.onBrowserReady` @ `sessionstore-windows-restored`,
+        // also after `AboutNewTab.activityStream.store._initIndexedDB` returns,
+        // and `AboutNewTab.pageListener` become `null` again.
+        let ASMessageChannel = AboutNewTab.activityStream.store._messageChannel;
+        if (!ASMessageChannel.channel) {
+          branch = "once_2722";
+          console.error(`Should've been avoided, previously seen in bug 2722`);
+        } else if (!ASMessageChannel.channel.urls.includes(NEWTAB_URL)) {
+          // Hack to add another url w/o reinitialize this RemotePages channel
+          ASMessageChannel.channel.urls.push(NEWTAB_URL);
+          ASMessageChannel.channel.mococnPortCreated = remotePages.prototype.portCreated.bind(ASMessageChannel.channel);
+          RemotePageManager.addRemotePageListener(NEWTAB_URL, ASMessageChannel.channel.mococnPortCreated);
+          branch = "as_missing";
+        } else {
+          branch = "as_existed";
+        }
       } else {
+        // Before `AboutNewTab.init`?
         branch = "not_ready";
-        console.error(`AboutNewTab not initialized?`);
+        console.error(`AboutNewTab.initialized is ${AboutNewTab.initialized}`);
       }
     } catch (ex) {
       branch = "error";
