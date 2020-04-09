@@ -453,23 +453,36 @@ this.topSites = {
       updated[oldSite.url] = newSite.url;
     }
 
-    let cachedSites = await this.feed.pinnedCache.request();
-    cachedSites.forEach(async (cachedSite, index) => {
-      if (!cachedSite.customScreenshotURL ||
-          !cachedSite.customScreenshotURL.startsWith(this.attachmentBase)) {
-        return;
-      }
+    let ctrlPrefKey = `services.sync.prefs.sync.${this.prefKey}`;
+    let ctrlPrefVal = Services.prefs.getBoolPref(ctrlPrefKey, true);
+    try {
+      Services.prefs.setBoolPref(ctrlPrefKey, false);
+      let cachedSites = await this.feed.pinnedCache.request();
+      await Promise.all(cachedSites.map(async (cachedSite, index) => {
+        try {
+          if (!cachedSite.customScreenshotURL ||
+              !cachedSite.customScreenshotURL.startsWith(this.attachmentBase)) {
+            return;
+          }
 
-      let site = current[updated[cachedSite.url] || cachedSite.url];
-      if (site && (
-        site.customScreenshotURL !== cachedSite.customScreenshotURL ||
-        site.label !== cachedSite.label ||
-        site.url !== cachedSite.url
-      )) {
-        console.log(`${cachedSite.url} => ${site.url}`);
-        await this.feed.pin({data: {index, site}});
-      }
-    });
+          let site = current[updated[cachedSite.url] || cachedSite.url];
+          if (site && (
+            site.customScreenshotURL !== cachedSite.customScreenshotURL ||
+            site.label !== cachedSite.label ||
+            site.url !== cachedSite.url
+          )) {
+            console.log(`${cachedSite.url} => ${site.url}`);
+            await this.feed.pin({data: {index, site}});
+          }
+        } catch (ex) {
+          console.error(ex);
+        }
+      }));
+    } catch (ex) {
+      console.error(ex);
+    } finally {
+      Services.prefs.setBoolPref(ctrlPrefKey, ctrlPrefVal);
+    }
   },
 };
 
