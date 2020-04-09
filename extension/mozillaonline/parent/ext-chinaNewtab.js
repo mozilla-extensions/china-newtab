@@ -453,6 +453,13 @@ this.topSites = {
       updated[oldSite.url] = newSite.url;
     }
 
+    let counts = {
+      usredit: 0,
+      updated: 0,
+      nomatch: 0,
+      current: 0,
+      bug2714: 0,
+    };
     let ctrlPrefKey = `services.sync.prefs.sync.${this.prefKey}`;
     let ctrlPrefVal = Services.prefs.getBoolPref(ctrlPrefKey, true);
     try {
@@ -462,17 +469,38 @@ this.topSites = {
         try {
           if (!cachedSite.customScreenshotURL ||
               !cachedSite.customScreenshotURL.startsWith(this.attachmentBase)) {
+            counts.usredit += 1;
+            return;
+          }
+
+          if (cachedSite.customScreenshotURL === "https://offlintab.firefoxchina.cnundefined") {
+            await this.feed.pin({data: {
+              index,
+              site: {
+                customScreenshotURL: null,
+                label: cachedSite.label,
+                url: cachedSite.url,
+              },
+            }});
+            counts.bug2714 += 1;
             return;
           }
 
           let site = current[updated[cachedSite.url] || cachedSite.url];
-          if (site && (
-            site.customScreenshotURL !== cachedSite.customScreenshotURL ||
-            site.label !== cachedSite.label ||
-            site.url !== cachedSite.url
-          )) {
-            console.log(`${cachedSite.url} => ${site.url}`);
-            await this.feed.pin({data: {index, site}});
+          if (site) {
+            if (
+              site.customScreenshotURL !== cachedSite.customScreenshotURL ||
+              site.label !== cachedSite.label ||
+              site.url !== cachedSite.url
+            ) {
+              console.log(`${cachedSite.url} => ${site.url}`);
+              await this.feed.pin({data: {index, site}});
+              counts.updated += 1;
+            } else {
+              counts.current += 1;
+            }
+          } else {
+            counts.nomatch += 1;
           }
         } catch (ex) {
           console.error(ex);
@@ -482,6 +510,13 @@ this.topSites = {
       console.error(ex);
     } finally {
       Services.prefs.setBoolPref(ctrlPrefKey, ctrlPrefVal);
+
+      ChinaNewtabFeed.sendTracking(
+        "chinaNewtab",
+        "update",
+        "topSites",
+        `${counts.usredit}|${counts.updated}|${counts.nomatch}|${counts.current}|${counts.bug2714}`
+      );
     }
   },
 };
