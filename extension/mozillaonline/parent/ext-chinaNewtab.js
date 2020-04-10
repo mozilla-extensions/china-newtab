@@ -46,7 +46,8 @@ this.activityStreamHack = {
   },
 
   initNewTabOverride() {
-    this.overrideNewtab(aboutNewTabService.newTabURL);
+    // Since Fx 76, see https://bugzil.la/1619992
+    this.overrideNewtab(AboutNewTab.newTabURL || aboutNewTabService.newTabURL);
 
     Services.obs.addObserver(this, "newtab-url-changed");
   },
@@ -110,8 +111,8 @@ this.activityStreamHack = {
     }
   },
 
-  initRemotePages() {
-    let branch = "initial";
+  initRemotePages(reason = "init") {
+    let branch = reason;
     let errMsg = "";
     try {
       errMsg = (
@@ -151,8 +152,14 @@ this.activityStreamHack = {
         } else {
           branch = "as_existed";
         }
+      } else if (
+        branch === "init" &&
+        Services.vc.compare(Services.appinfo.version, "76.0") >= 0
+      ) {
+        // `AboutNewTab.init` was further delayed in https://bugzil.la/1619992
+        branch = "will_retry";
+        Services.obs.addObserver(this, "browser-delayed-startup-finished");
       } else {
-        // Before `AboutNewTab.init`?
         branch = "not_ready";
         console.error(`AboutNewTab.initialized is ${AboutNewTab.initialized}`);
       }
@@ -162,10 +169,10 @@ this.activityStreamHack = {
       console.error(ex);
     }
 
-    console.log("activityStreamHack.initRemotePages", branch);
+    console.log("activityStreamHack.initRemotePages", reason, branch);
     ChinaNewtabFeed.sendTracking(
       "chinaNewtab",
-      "init",
+      reason,
       "remotePages",
       branch,
       errMsg
@@ -174,6 +181,12 @@ this.activityStreamHack = {
 
   observe(subject, topic, data) {
     switch (topic) {
+      case "browser-delayed-startup-finished":
+        Services.obs.removeObserver(this, topic);
+        Services.tm.dispatchToMainThread(() => {
+          this.initRemotePages("retry");
+        });
+        break;
       case "newtab-url-changed":
         this.overrideNewtab(data);
         break;
@@ -199,7 +212,12 @@ this.activityStreamHack = {
       return;
     }
 
-    aboutNewTabService.newTabURL = NEWTAB_URL;
+    // Since Fx 76, see https://bugzil.la/1619992
+    if (AboutNewTab.hasOwnProperty("newTabURL")) {
+      AboutNewTab.newTabURL = NEWTAB_URL;
+    } else {
+      aboutNewTabService.newTabURL = NEWTAB_URL;
+    }
   },
 
   setPref(key, val) {
@@ -222,6 +240,11 @@ this.activityStreamHack = {
 
   uninit() {
     Services.obs.removeObserver(this, "newtab-url-changed");
+
+    // Shouldn't be necessary, but in case?
+    try {
+      Services.obs.removeObserver(this, "browser-delayed-startup-finished");
+    } catch (ex) {}
   },
 };
 
