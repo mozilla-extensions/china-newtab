@@ -218,6 +218,8 @@ this.activityStreamHack = {
     } else {
       aboutNewTabService.newTabURL = NEWTAB_URL;
     }
+    // See https://bugzil.la/1184701,1625609
+    Services.prefs.getDefaultBranch("browser.tabs.remote.").setBoolPref("separatePrivilegedContentProcess", false);
   },
 
   setPref(key, val) {
