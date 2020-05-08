@@ -11,7 +11,10 @@ const { XPCOMUtils } = ChromeUtils.import(
 );
 XPCOMUtils.defineLazyModuleGetters(this, {
   ContentSearch: "resource:///modules/ContentSearch.jsm",
+  ContentSearchParent: "resource:///actors/ContentSearchParent.jsm",
+  Services: "resource://gre/modules/Services.jsm",
 });
+
 XPCOMUtils.defineLazyGetter(this, "ChinaContentSearch", () => {
   let ChinaContentSearch = Object.create(ContentSearch, ChinaNewtabProperties);
   ChinaContentSearch.init();
@@ -25,7 +28,7 @@ var ChinaNewtabProperties = {
     value(type, data) {
       for (let [id, actor] of actorsMap.entries()) {
         try {
-          actor.sendAsyncMessage(...this._msgArgs(type, data));
+          actor.sendAsyncMessage(type, data);
         } catch (ex) {
           actorsMap.delete(id);
           Cu.reportError(ex);
@@ -37,19 +40,30 @@ var ChinaNewtabProperties = {
     value(msg, type, data) {
       if (!Cu.isDeadWrapper(msg.target) && msg.target.browsingContext) {
         let actor = actorsMap.get(msg.target.browsingContext.id);
-        actor.sendAsyncMessage(...this._msgArgs(type, data));
+        actor.sendAsyncMessage(type, data);
       }
     },
   },
 };
 
+// Since Fx 77, see https://bugzil.la/1614738
+const ChinaNewtabContentSearchParent =
+  Services.vc.compare(Services.appinfo.version, "77.0") >= 0 ?
+  class ChinaNewtabContentSearchParent extends ContentSearchParent {} : (
+// Not really a copy of vanilla implementation
 class ChinaNewtabContentSearchParent extends JSWindowActorParent {
   receiveMessage(msg) {
     // Use `this.manager.browsingContext` instead of `this.browsingContext`
     // for Fx 68 compat, see https://bugzil.la/1557062
     actorsMap.set(this.manager.browsingContext.id, this);
 
-    msg.target = this.manager.browsingContext.embedderElement;
+    msg.data = {
+      type: msg.name,
+      data: msg.data,
+    };
+    msg.name = "ContentSearch";
+    msg.target = this.manager.browsingContext.top.embedderElement;
+
     ChinaContentSearch.receiveMessage(msg);
   }
 
@@ -61,3 +75,5 @@ class ChinaNewtabContentSearchParent extends JSWindowActorParent {
     actorsMap.delete(this.manager.browsingContext.id);
   }
 }
+// Not really a copy of vanilla implementation
+  );

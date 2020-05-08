@@ -6,24 +6,35 @@
 
 var EXPORTED_SYMBOLS = ["ChinaNewtabContentSearchChild"];
 
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
+);
+XPCOMUtils.defineLazyModuleGetters(this, {
+  ContentSearchChild: "resource:///actors/ContentSearchChild.jsm",
+  Services: "resource://gre/modules/Services.jsm",
+});
+
+// Since Fx 77, see https://bugzil.la/1614738
+const ChinaNewtabContentSearchChild =
+  Services.vc.compare(Services.appinfo.version, "77.0") >= 0 ?
+  class ChinaNewtabContentSearchChild extends ContentSearchChild {} : (
+// Copied vanilla implementation starts
 class ChinaNewtabContentSearchChild extends JSWindowActorChild {
   handleEvent(event) {
-    this._sendMsg(event.detail.type, event.detail.data);
+    // The event gets translated into a message that
+    // is then sent to the parent.
+    if (event.type == "ContentSearchClient") {
+      this.sendAsyncMessage(event.detail.type, event.detail.data);
+    }
   }
 
   receiveMessage(msg) {
-    this._fireEvent(msg.data.type, msg.data.data);
-  }
-
-  _sendMsg(type, data = null) {
-    this.sendAsyncMessage("ContentSearch", {
-      type,
-      data,
-    });
+    // The message gets translated into an event that
+    // is then sent to the content.
+    this._fireEvent(msg.name, msg.data);
   }
 
   _fireEvent(type, data = null) {
-    let content = this.document.defaultView;
     let event = Cu.cloneInto(
       {
         detail: {
@@ -31,10 +42,12 @@ class ChinaNewtabContentSearchChild extends JSWindowActorChild {
           data,
         },
       },
-      content
+      this.contentWindow
     );
-    content.dispatchEvent(
-      new content.CustomEvent("ContentSearchService", event)
+    this.contentWindow.dispatchEvent(
+      new this.contentWindow.CustomEvent("ContentSearchService", event)
     );
   }
 }
+// Copied vanilla implementation ends
+  );
