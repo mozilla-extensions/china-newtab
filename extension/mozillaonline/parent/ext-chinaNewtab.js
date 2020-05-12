@@ -303,6 +303,10 @@ this.ntpColors = {
   init() {
     try {
       ChromeUtils.registerWindowActor("ChinaNewtabContentTheme", {
+        // `parent` required before Fx 69, see https://bugzil.la/1552268
+        parent: {
+          moduleURI: `resource://${RESOURCE_HOST}/ChinaNewtabContentThemeParent.jsm`,
+        },
         child: {
           moduleURI: `resource://${RESOURCE_HOST}/ChinaNewtabContentThemeChild.jsm`,
           events: {
