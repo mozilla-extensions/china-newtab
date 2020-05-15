@@ -28,7 +28,7 @@ var ChinaNewtabProperties = {
     value(type, data) {
       for (let [id, actor] of actorsMap.entries()) {
         try {
-          actor.sendAsyncMessage(type, data);
+          actor.sendAsyncMessage(...this._msgArgs(type, data));
         } catch (ex) {
           actorsMap.delete(id);
           Cu.reportError(ex);
@@ -40,7 +40,7 @@ var ChinaNewtabProperties = {
     value(msg, type, data) {
       if (!Cu.isDeadWrapper(msg.target) && msg.target.browsingContext) {
         let actor = actorsMap.get(msg.target.browsingContext.id);
-        actor.sendAsyncMessage(type, data);
+        actor.sendAsyncMessage(...this._msgArgs(type, data));
       }
     },
   },
@@ -57,11 +57,14 @@ class ChinaNewtabContentSearchParent extends JSWindowActorParent {
     // for Fx 68 compat, see https://bugzil.la/1557062
     actorsMap.set(this.manager.browsingContext.id, this);
 
-    msg.data = {
-      type: msg.name,
-      data: msg.data,
-    };
-    msg.name = "ContentSearch";
+    // Compat fix, prefer old style message, but keep handling the new style
+    if (msg.name !== "ContentSearch") {
+      msg.data = {
+        type: msg.name,
+        data: msg.data,
+      };
+      msg.name = "ContentSearch";
+    }
     msg.target = this.manager.browsingContext.top.embedderElement;
 
     ChinaContentSearch.receiveMessage(msg);
