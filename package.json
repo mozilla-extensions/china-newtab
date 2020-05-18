@@ -1,6 +1,6 @@
 {
   "name": "china-newtab",
-  "version": "4.77.1",
+  "version": "4.77.2",
   "description": "Customizied New Tab Page for Firefox",
   "scripts": {
     "lint": "eslint --ext .js,.jsm extension"
