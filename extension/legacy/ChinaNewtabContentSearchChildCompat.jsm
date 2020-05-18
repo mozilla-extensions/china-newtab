@@ -24,11 +24,28 @@ class ChinaNewtabContentSearchChild extends JSWindowActorChild {
     // The event gets translated into a message that
     // is then sent to the parent.
     if (event.type == "ContentSearchClient") {
-      this.sendAsyncMessage(event.detail.type, event.detail.data);
+      // Compat fix, try both message styles, before one is determined
+      if (this.umbrellaMsgName !== true) {
+        this.sendAsyncMessage(event.detail.type, event.detail.data);
+      }
+      if (this.umbrellaMsgName !== false) {
+        this.sendAsyncMessage("ContentSearch", {
+          type: event.detail.type,
+          data: event.detail.data,
+        });
+      }
     }
   }
 
   receiveMessage(msg) {
+    // Compat fix, prefer old style message, but keep handling the new style
+    if (msg.name === "ContentSearch") {
+      this.umbrellaMsgName = true;
+      this._fireEvent(msg.data.type, msg.data.data);
+      return;
+    }
+    this.umbrellaMsgName = false;
+
     // The message gets translated into an event that
     // is then sent to the content.
     this._fireEvent(msg.name, msg.data);
