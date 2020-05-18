@@ -57,16 +57,7 @@ class ChinaNewtabContentSearchParent extends JSWindowActorParent {
     // for Fx 68 compat, see https://bugzil.la/1557062
     actorsMap.set(this.manager.browsingContext.id, this);
 
-    // Compat fix, prefer old style message, but keep handling the new style
-    if (msg.name !== "ContentSearch") {
-      msg.data = {
-        type: msg.name,
-        data: msg.data,
-      };
-      msg.name = "ContentSearch";
-    }
     msg.target = this.manager.browsingContext.top.embedderElement;
-
     ChinaContentSearch.receiveMessage(msg);
   }
 

@@ -271,16 +271,19 @@ this.chinaNewtabFeed = {
 };
 
 this.contentSearch = {
-  callbacks: new WeakMap(),
-
-  init() {
+  init(extension) {
     try {
+      let needsCompatChild = extension.startupReason === "ADDON_UPGRADE" &&
+                             extension.addonData.oldVersion === "4.77";
+
       ChromeUtils.registerWindowActor("ChinaNewtabContentSearch", {
         parent: {
           moduleURI: `resource://${RESOURCE_HOST}/ChinaNewtabContentSearchParent.jsm`,
         },
         child: {
-          moduleURI: `resource://${RESOURCE_HOST}/ChinaNewtabContentSearchChild.jsm`,
+          moduleURI: (needsCompatChild
+            ? `resource://${RESOURCE_HOST}/ChinaNewtabContentSearchChildCompat.jsm`
+            : `resource://${RESOURCE_HOST}/ChinaNewtabContentSearchChild.jsm`),
           events: {
             ContentSearchClient: { capture: true, wantUntrusted: true },
           },
@@ -560,7 +563,7 @@ this.chinaNewtab = class extends ExtensionAPI {
 
     activityStreamHack.init(extension);
 
-    contentSearch.init();
+    contentSearch.init(extension);
     ntpColors.init();
     searchPlugins.init();
   }
