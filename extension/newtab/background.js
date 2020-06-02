@@ -5,6 +5,7 @@
 
 (async function() {
   const STORAGE_PREFIX = "topsites.pinned.default.";
+  const TIMEOUT_INITIAL = 5e3;
   const TIMEOUT_REGULAR = 60e3 * 60 * 4;
   const TIMEOUT_RETRY = 60e3 * 5;
   let data;
@@ -89,5 +90,5 @@
   }
 
   browser.storage.onChanged.addListener(onStorageChange);
-  update();
+  setTimeout(update, TIMEOUT_INITIAL);
 })();

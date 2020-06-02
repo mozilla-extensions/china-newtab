@@ -391,6 +391,38 @@ this.searchPlugins = {
 
 this.topSites = {
   attachmentBase: "https://offlintab.firefoxchina.cn",
+  backfillPrefixes: {
+    "0ef7766c": [3],
+    "0ff1094d": [4],
+    "1490769a": [5],
+    "1beb4001": [4],
+    "2b616a4a": [4],
+    "313e9486": [2],
+    "381d5ce9": [4],
+    "39975ae4": [6],
+    "3df5e780": [0],
+    "3e33a886": [4],
+    "3e4d4729": [4],
+    "468f82e6": [3],
+    "4ca16353": [4],
+    "4dd1c540": [3],
+    "6fd68a18": [4],
+    "78396aeb": [7],
+    "7ee9a10c": [5],
+    "83469c68": [5],
+    "8e094349": [4],
+    "96bc9794": [4],
+    "9f4632fb": [6, 7],
+    "a9ab9324": [4],
+    "adce6b03": [1],
+    "b18eca4f": [4],
+    "bc4ba8bf": [6],
+    "ca31f5d3": [4],
+    "f0ff22c0": [5, 6],
+    "f243aa87": [4],
+    "f3726955": [4],
+    "ff2bdf2c": [5],
+  },
   prefKey: "browser.newtabpage.pinned",
 
   get feed() {
@@ -419,21 +451,111 @@ this.topSites = {
     await this.feed._fetchScreenshot(link, link.url);
   },
 
-  async handleCreated(data) {
-    let pinned = [];
+  convertSite(site) {
+    let customScreenshotURL = site.attachment &&
+      site.attachment.location &&
+      site.id &&
+      `${this.attachmentBase}${site.attachment.location}?mococn_dp=${site.id}`;
+
+    return {
+      customScreenshotURL,
+      label: site.label,
+      url: site.url,
+    };
+  },
+
+  getCurrentMaps(data) {
+    let currentById = new Map();
+    let idByUrl = new Map();
+
     for (let currentSite of data.current) {
-      let customScreenshotURL = currentSite.attachment &&
-        currentSite.attachment.location &&
-        `${this.attachmentBase}${currentSite.attachment.location}`;
-      if (!customScreenshotURL) {
+      let site = this.convertSite(currentSite);
+      if (!site.customScreenshotURL) {
         continue;
       }
 
-      pinned[parseInt(currentSite.id, 10)] = {
-        customScreenshotURL,
-        label: currentSite.label,
-        url: currentSite.url,
-      };
+      currentById.set(currentSite.id, site);
+      idByUrl.set(currentSite.url, currentSite.id);
+    }
+
+    return {currentById, idByUrl};
+  },
+
+  getDefaultPosition(site) {
+    try {
+      return (new URL(site.customScreenshotURL)).searchParams.get("mococn_dp");
+    } catch (ex) {
+      return null;
+    }
+  },
+
+  guessDefaultPosition(site) {
+    let commonPrefix = `${this.attachmentBase}/data/thumbnails/`;
+    if (!site.customScreenshotURL.startsWith(commonPrefix)) {
+      return {prefix: "(notset)"};
+    }
+
+    let prefix = site.customScreenshotURL.substr(commonPrefix.length, 8);
+    return {positions: this.backfillPrefixes[prefix], prefix};
+  },
+
+  async handleBackfill(data) {
+    let backfillData = undefined;
+    let {currentById: missingById, idByUrl} = this.getCurrentMaps(data);
+    let guessByUrl = new Map();
+
+    let cachedSites = await this.feed.pinnedCache.request();
+    for (let [index, cachedSite] of cachedSites.entries()) {
+      if (!cachedSite ||
+          !cachedSite.customScreenshotURL ||
+          !cachedSite.customScreenshotURL.startsWith(this.attachmentBase)) {
+        continue;
+      }
+
+      let defaultPosition = this.getDefaultPosition(cachedSite);
+      if (defaultPosition) {
+        missingById.delete(defaultPosition);
+        continue;
+      }
+
+      let siteId = idByUrl.get(cachedSite.url);
+      let site = missingById.get(siteId);
+      if (siteId && site) {
+        missingById.delete(siteId);
+        // Only backfill one site at a time
+        backfillData = backfillData || {index, site};
+        continue;
+      }
+
+      let guess = this.guessDefaultPosition(cachedSite);
+      guessByUrl.set(cachedSite.url, guess.positions);
+      if (guess.positions) {
+        continue;
+      }
+
+      this.sendTracking("backfill", "unknownPrefix", `${guess.prefix}`);
+    }
+
+    if ((
+      guessByUrl.size &&
+      (await this.maybeFakeUpdate(data, guessByUrl, missingById))
+    ) || !backfillData) {
+      return;
+    }
+
+    await this.feed.pin({data: backfillData});
+    this.sendTracking("backfill", "defaultPosition", `${backfillData.index}`);
+  },
+
+  async handleCreated(data) {
+    let pinned = [];
+    for (let currentSite of data.current) {
+      let site = this.convertSite(currentSite);
+      if (!site.customScreenshotURL) {
+        continue;
+      }
+
+      pinned[parseInt(currentSite.id, 10)] = site;
     }
     Services.prefs.setStringPref(this.prefKey, JSON.stringify(pinned));
 
@@ -462,27 +584,14 @@ this.topSites = {
 
   async handleUpdated(data) {
     if (!data.updated.length) {
+      await this.handleBackfill(data);
       return;
     }
 
-    let current = {};
-    let updated = {};
-    for (let currentSite of data.current) {
-      let customScreenshotURL = currentSite.attachment &&
-        currentSite.attachment.location &&
-        `${this.attachmentBase}${currentSite.attachment.location}`;
-      if (!customScreenshotURL) {
-        continue;
-      }
-
-      current[currentSite.url] = {
-        customScreenshotURL,
-        label: currentSite.label,
-        url: currentSite.url,
-      };
-    }
+    let {currentById, idByUrl} = this.getCurrentMaps(data);
+    let updatedIdByUrl = new Map();
     for (let {old: oldSite, new: newSite} of data.updated) {
-      updated[oldSite.url] = newSite.url;
+      updatedIdByUrl.set(oldSite.url, newSite.id);
     }
 
     let counts = {
@@ -499,7 +608,8 @@ this.topSites = {
       let cachedSites = await this.feed.pinnedCache.request();
       await Promise.all(cachedSites.map(async (cachedSite, index) => {
         try {
-          if (!cachedSite.customScreenshotURL ||
+          if (!cachedSite ||
+              !cachedSite.customScreenshotURL ||
               !cachedSite.customScreenshotURL.startsWith(this.attachmentBase)) {
             counts.usredit += 1;
             return;
@@ -518,10 +628,14 @@ this.topSites = {
             return;
           }
 
-          let site = current[updated[cachedSite.url] || cachedSite.url];
+          let site = currentById.get(
+            this.getDefaultPosition(cachedSite) ||
+            updatedIdByUrl.get(cachedSite.url) ||
+            idByUrl.get(cachedSite.url)
+          );
           if (site) {
             if (
-              site.customScreenshotURL !== cachedSite.customScreenshotURL ||
+              !site.customScreenshotURL.startsWith(cachedSite.customScreenshotURL) ||
               site.label !== cachedSite.label ||
               site.url !== cachedSite.url
             ) {
@@ -543,13 +657,109 @@ this.topSites = {
     } finally {
       Services.prefs.setBoolPref(ctrlPrefKey, ctrlPrefVal);
 
-      ChinaNewtabFeed.sendTracking(
-        "chinaNewtab",
+      this.sendTracking(
         "update",
-        "topSites",
         `${counts.usredit}|${counts.updated}|${counts.nomatch}|${counts.current}|${counts.bug2714}`
       );
     }
+  },
+
+  async maybeFakeUpdate(data, guessByUrl, missingById) {
+    let counts = {
+      ambiguous: 0,
+      conflict: 0,
+      matched: 0,
+      noidea: 0,
+    };
+    let guessedPositionCount = new Map();
+    let status = data.current.map(currentSite => {
+      return missingById.has(currentSite.id) ? 0 : "-";
+    });
+    status.push("|");
+    status.push(0);
+
+    for (let guessedPositions of guessByUrl.values()) {
+      if (!guessedPositions || guessedPositions.length < 1) {
+        counts.noidea += 1;
+        status[status.length - 1] += 1;
+        continue;
+      }
+
+      for (let guessedPosition of guessedPositions) {
+        if (isNaN(status[guessedPosition])) {
+          status[guessedPositions] = "*";
+        } else {
+          status[guessedPositions] += 1;
+          status[guessedPositions] = Math.min(status[guessedPositions], 9);
+        }
+      }
+
+      if (guessedPositions.length > 1) {
+        counts.ambiguous += 1;
+        continue;
+      }
+      let guessedPosition = `${guessedPositions[0]}`;
+
+      if (!missingById.has(guessedPosition)) {
+        counts.conflict += 1;
+        continue;
+      }
+
+      counts.matched += 1;
+      guessedPositionCount.set(
+        guessedPosition,
+        (guessedPositionCount.get(guessedPosition) || 0) + 1
+      );
+    }
+
+    console.log({ counts, guessedPositionCount, status });
+    this.sendTracking("backfill", "status", status.join(""));
+    if (counts.ambiguous || counts.conflict || counts.noidea) {
+      this.sendTracking(
+        "backfill",
+        "blocked",
+        `${counts.ambiguous}|${counts.conflict}|${counts.matched}|${counts.noidea}`
+      );
+      return false;
+    }
+
+    let duplicatedId = [];
+    for (let [guessedPosition, count] of guessedPositionCount.entries()) {
+      if (count > 1) {
+        duplicatedId.push(guessedPosition);
+      }
+    }
+    if (duplicatedId.length) {
+      this.sendTracking("backfill", "duplicated", duplicatedId.join("|"));
+      return false;
+    }
+
+    // Fake an update from cached url to guessed url
+    for (let [url, guessedPositions] of guessByUrl.entries()) {
+      data.updated.push({
+        "old": {url},
+        "new": {id: `${guessedPositions[0]}`},
+      });
+    }
+    // Nothing to update, and nobody want no OOM from an infinite loop
+    if (!data.updated.length) {
+      return false;
+    }
+
+    console.log(data);
+    await this.handleUpdated(data);
+    this.sendTracking("backfill", "handled", `${data.updated.length}`);
+    return true;
+  },
+
+  async sendTracking(method, value, extra = "") {
+    return ChinaNewtabFeed.sendTracking(
+      "chinaNewtab",
+      method,
+      "topSites",
+      value,
+      extra
+    );
   },
 };
 
