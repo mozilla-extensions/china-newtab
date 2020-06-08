@@ -447,7 +447,9 @@ this.topSites = {
 
   get feed() {
     try {
-      let feed = AboutNewTab.activityStream.store.feeds.get("feeds.topsites");
+      // Since Fx 78, see https://bugzil.la/1634279
+      let feed = AboutNewTab.activityStream.store.feeds.get("feeds.system.topsites") ||
+                 AboutNewTab.activityStream.store.feeds.get("feeds.topsites");
 
       delete this.feed;
       return this.feed = feed;
