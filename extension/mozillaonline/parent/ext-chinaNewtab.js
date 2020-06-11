@@ -392,32 +392,52 @@ this.searchPlugins = {
 this.topSites = {
   attachmentBase: "https://offlintab.firefoxchina.cn",
   backfillPrefixes: {
+    "046255d2": [4, 3], // as-icons
+    "05d144db": [6],
     "0ef7766c": [3],
     "0ff1094d": [4],
     "1490769a": [5],
     "1beb4001": [4],
+    "1e88a405": [5], // as-icons
+    "237d73b2": [7],
     "2b616a4a": [4],
+    "313a1105": [4], // as-icons
     "313e9486": [2],
     "381d5ce9": [4],
     "39975ae4": [6],
     "3df5e780": [0],
     "3e33a886": [4],
     "3e4d4729": [4],
+    "440e2d7c": [4],
     "468f82e6": [3],
+    "491725fc": [5], // as-icons
+    "4a112aca": [7], // as-icons
     "4ca16353": [4],
     "4dd1c540": [3],
+    "6b203324": [6],
     "6fd68a18": [4],
+    "70199cba": [4, 6, 7, 5],
+    "71ecd4fd": [1, 2],
     "78396aeb": [7],
+    "7c2b3ec9": [3, 2], // as-icons
+    "7eb6052d": [5],
     "7ee9a10c": [5],
     "83469c68": [5],
     "8e094349": [4],
+    "903b39f8": [3],
+    "910f7dca": [2], // as-icons
+    "9355218c": [5],
     "96bc9794": [4],
     "9f4632fb": [6, 7],
     "a9ab9324": [4],
+    "a4f13a05": [6], // as-icons
     "adce6b03": [1],
     "b18eca4f": [4],
     "bc4ba8bf": [6],
     "ca31f5d3": [4],
+    "e78f8151": [1], // as-icons
+    "e6f12b12": [4],
+    "ef925e06": [0],
     "f0ff22c0": [5, 6],
     "f243aa87": [4],
     "f3726955": [4],
@@ -491,12 +511,18 @@ this.topSites = {
 
   guessDefaultPosition(site) {
     let commonPrefix = `${this.attachmentBase}/data/thumbnails/`;
-    if (!site.customScreenshotURL.startsWith(commonPrefix)) {
-      return {prefix: "(notset)"};
+    if (site.customScreenshotURL.startsWith(commonPrefix)) {
+      let prefix = site.customScreenshotURL.substr(commonPrefix.length, 8);
+      return {positions: this.backfillPrefixes[prefix], prefix};
     }
 
-    let prefix = site.customScreenshotURL.substr(commonPrefix.length, 8);
-    return {positions: this.backfillPrefixes[prefix], prefix};
+    let distPrefix = `${this.attachmentBase}/static/img/as-icons/`;
+    if (site.customScreenshotURL.startsWith(distPrefix)) {
+      let prefix = site.customScreenshotURL.substr(distPrefix.length, 8);
+      return {positions: this.backfillPrefixes[prefix], prefix};
+    }
+
+    return {prefix: "(notset)"};
   },
 
   async handleBackfill(data) {
