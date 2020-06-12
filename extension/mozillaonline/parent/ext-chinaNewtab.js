@@ -97,17 +97,26 @@ this.activityStreamHack = {
         }
 
         // Hack to avoid sending any request to pocket endpoints, should work
-        // with feeds.section.topstories defaults to false
+        // with `feeds.section.topstories` or `feeds.system.topstories` (since
+        // Fx 78, see https://bugzil.la/1446276) defaults to `false`
         this.onAddSection = this.onAddSection.bind(this);
         SectionsManager.on(SectionsManager.ADD_SECTION, this.onAddSection);
 
         // intentionally no break;
+      case 1:
+        // If `currentVersion` is `0`, this pref should be set in
+        // `this.onAddSection` instead of here
+        if (currentVersion === 1) {
+          prefsToSet.set("browser.newtabpage.activity-stream.feeds.system.topstories", true);
+        }
+        prefsToSet.set("extensions.chinaNewtab.prefVersion", 2);
+        break;
       default:
         break;
     }
 
-    for (const key of prefsToSet.keys()) {
-      this.setPref(key, prefsToSet.get(key));
+    for (const [key, val] of prefsToSet) {
+      this.setPref(key, val);
     }
   },
 
@@ -203,7 +212,11 @@ this.activityStreamHack = {
       return;
     }
 
-    Services.prefs.setBoolPref("browser.newtabpage.activity-stream.feeds.section.topstories", true);
+    // Since Fx 78, see https://bugzil.la/1446276
+    let prefKey = Services.vc.compare(Services.appinfo.version, "78.0") >= 0
+      ? "browser.newtabpage.activity-stream.feeds.system.topstories"
+      : "browser.newtabpage.activity-stream.feeds.section.topstories";
+    Services.prefs.setBoolPref(prefKey, true);
     SectionsManager.off(event, this.onAddSection);
   },
 
