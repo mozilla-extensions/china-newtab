@@ -707,65 +707,83 @@ this.topSites = {
 
   async maybeFakeUpdate(data, guessByUrl, missingById) {
     let counts = {
-      ambiguous: 0,
-      conflict: 0,
-      matched: 0,
-      noidea: 0,
+      ambiguous: new Set(),
+      conflict: new Set(),
+      matched: new Map(),
+      noidea: new Set(),
     };
-    let guessedPositionCount = new Map();
     let status = data.current.map(currentSite => {
       return missingById.has(currentSite.id) ? 0 : "-";
     });
-    status.push("|");
-    status.push(0);
 
-    for (let guessedPositions of guessByUrl.values()) {
+    for (let [url, guessedPositions] of guessByUrl.entries()) {
       if (!guessedPositions || guessedPositions.length < 1) {
-        counts.noidea += 1;
-        status[status.length - 1] += 1;
+        counts.noidea.add(url);
         continue;
-      }
-
-      for (let guessedPosition of guessedPositions) {
-        if (isNaN(status[guessedPosition])) {
-          status[guessedPositions] = "*";
-        } else {
-          status[guessedPositions] += 1;
-          status[guessedPositions] = Math.min(status[guessedPositions], 9);
-        }
       }
 
       if (guessedPositions.length > 1) {
-        counts.ambiguous += 1;
+        counts.ambiguous.add(url);
         continue;
       }
-      let guessedPosition = `${guessedPositions[0]}`;
+      let guessedPosition = guessedPositions[0];
 
-      if (!missingById.has(guessedPosition)) {
-        counts.conflict += 1;
+      if (isNaN(status[guessedPosition])) {
+        status[guessedPosition] = "*";
+      } else {
+        status[guessedPosition] += 1;
+        status[guessedPosition] = Math.min(status[guessedPosition], 9);
+      }
+
+      if (!missingById.has(`${guessedPosition}`)) {
+        counts.conflict.add(url);
         continue;
       }
 
-      counts.matched += 1;
-      guessedPositionCount.set(
+      counts.matched.set(
         guessedPosition,
-        (guessedPositionCount.get(guessedPosition) || 0) + 1
+        (counts.matched.get(guessedPosition) || 0) + 1
       );
     }
 
-    console.log({ counts, guessedPositionCount, status });
-    this.sendTracking("backfill", "status", status.join(""));
-    if (counts.ambiguous || counts.conflict || counts.noidea) {
+    if (
+      counts.ambiguous.size + counts.conflict.size + counts.noidea.size === 1 &&
+      counts.matched.size + 1 === missingById.size &&
+      status.filter(item => item === 0).length === 1
+    ) {
+      let altPosition = status.indexOf(0);
+      let url = counts.ambiguous.keys().next().value ||
+                counts.conflict.keys().next().value ||
+                counts.noidea.keys().next().value;
+
+      if (
+        missingById.has(`${altPosition}`) &&
+        !counts.matched.has(altPosition) &&
+        guessByUrl.has(url)
+      ) {
+        guessByUrl.set(url, [altPosition]);
+        this.sendTracking("backfill", "missing1", `${altPosition}`);
+        return this.maybeFakeUpdate(data, guessByUrl, missingById);
+      }
+    }
+
+    this.sendTracking("backfill", "status", [
+      status.join(""),
+      counts.noidea.size,
+    ].join("|"));
+    if (counts.ambiguous.size + counts.conflict.size + counts.noidea.size) {
+      let matchedSum = Array.from(counts.matched.values()).reduce((x, y) => x + y, 0);
+
       this.sendTracking(
         "backfill",
         "blocked",
-        `${counts.ambiguous}|${counts.conflict}|${counts.matched}|${counts.noidea}`
+        `${counts.ambiguous.size}|${counts.conflict.size}|${matchedSum}|${counts.noidea.size}`
       );
       return false;
     }
 
     let duplicatedId = [];
-    for (let [guessedPosition, count] of guessedPositionCount.entries()) {
+    for (let [guessedPosition, count] of counts.matched.entries()) {
       if (count > 1) {
         duplicatedId.push(guessedPosition);
       }
