@@ -26,6 +26,45 @@ const { XPCOMUtils } = ChromeUtils.import(
 XPCOMUtils.defineLazyGlobalGetters(this, ["fetch"]);
 
 class ChinaNewtabFeed {
+  get topSites() {
+    // Since Fx 78, see https://bugzil.la/1634279
+    let value = this.store.feeds.get("feeds.system.topsites") ||
+                this.store.feeds.get("feeds.topsites");
+
+    Object.defineProperty(this, "topSites", { value });
+    return this.topSites;
+  }
+
+  // Generate screenshot even if rich icon or tippytop is available
+  async cacheExtraScreenshots(sites) {
+    if (!sites || !sites.length) {
+      return;
+    }
+
+    let filteredWithIndex = sites.filter(site => {
+      return (
+        site &&
+        site.isPinned &&
+        !site.customScreenshotURL &&
+        !site.screenshot
+      );
+    });
+
+    if (!filteredWithIndex.length || !this.topSites) {
+      return;
+    }
+
+    const pinned = await this.topSites.pinnedCache.request();
+    for (let site of filteredWithIndex) {
+      let link = pinned.find(pin => pin && pin.url === site.url);
+      if (!link) {
+        continue;
+      }
+
+      await this.topSites._fetchScreenshot(link, link.url);
+    }
+  }
+
   async onAction(action) {
     switch (action.type) {
       case at.NEW_TAB_INIT:
@@ -34,6 +73,7 @@ class ChinaNewtabFeed {
       case at.NEW_TAB_INITIAL_STATE:
         let { Prefs, Sections, TopSites } = action.data;
 
+        await this.cacheExtraScreenshots(TopSites.rows);
         if (TopSites.pref) {
           let topSitesRows = TopSites.pref.collapsed
                            ? 0
@@ -93,6 +133,9 @@ class ChinaNewtabFeed {
           "top_sites",
           action.data.index,
         );
+        break;
+      case at.TOP_SITES_UPDATED:
+        await this.cacheExtraScreenshots(action.data.links);
         break;
       default:
         break;

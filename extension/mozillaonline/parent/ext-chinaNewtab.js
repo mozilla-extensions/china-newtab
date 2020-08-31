@@ -472,20 +472,6 @@ this.topSites = {
     }
   },
 
-  async cacheExtraScreenshot(index) {
-    if (!this.feed) {
-      return;
-    }
-
-    let links = await this.feed.pinnedCache.request();
-    let link = links[index];
-    if (!link) {
-      return;
-    }
-
-    await this.feed._fetchScreenshot(link, link.url);
-  },
-
   convertSite(site) {
     let customScreenshotURL = site.attachment &&
       site.attachment.location &&
