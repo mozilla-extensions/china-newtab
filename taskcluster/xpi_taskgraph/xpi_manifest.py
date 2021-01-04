@@ -65,6 +65,13 @@ def get_manifest():
                 subdir_list.remove(dir_)
                 continue
         if "package.json" in file_list:
+            # The presence of a "package.json" file in the repository
+            # does not necessarily mean there's an addon to sign. We
+            # need to give the ability to repository owners to turn off
+            # signing for non-addon "package.json" (e.g. libraries).
+            if "dontbuild" in file_list:
+                continue
+
             manifest = {"tests": []}
             if "yarn.lock" in file_list:
                 manifest["install-type"] = "yarn"

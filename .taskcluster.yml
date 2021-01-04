@@ -7,15 +7,19 @@ tasks:
     - $let:
           # XXX Set to `true` for private repos
           privateRepo: false
-          # XXX use "privileged", "system", or "mozillaonline-privileged" to
-          #     enable signing on push/PR. Note, this only works for public
-          #     repos for now. Release builds off shipit will get signing for
-          #     both public and private repos.
+          # XXX Use
+          # `system` for system add-on,
+          # `privileged` for AMO or self-hosted privileged add-on,
+          # `mozillaonline-privileged` for Mozilla China add-on,
+          # `normandy-privileged` for normandy add-on
+          # to enable siging on push/PR. Note, this only works for public repos
+          # for now. Release builds off shipit will get signing for both public
+          # and private repos.
           xpiSigningType: "mozillaonline-privileged"
           # The below doesn't need changing on initial repo setup
           taskgraph:
               branch: taskgraph
-              revision: 7dde9ce7740068d7b73218976343a28fc99be847
+              revision: 8051b20c975711d4ce09537285cef7451d043d8b
           template:
               repo: https://github.com/mozilla-extensions/xpi-template
               branch: master
@@ -252,7 +256,7 @@ tasks:
                           # Note: This task is built server side without the context or tooling that
                           # exist in tree so we must hard code the hash
                           image:
-                              mozillareleases/taskgraph:decision-21bef1bc0f11e62c7a23384584f9f8f0d96e95eef192e5bb599fc82ba55c81a7@sha256:d29af306b09cd00a63f982e8caeb53dbec7efd7bb3ae64ce3cef9cd889b750e6
+                              mozillareleases/taskgraph:decision-d9fab4448ee5e00b0a29825c3f0609af957279daf102547d715414782710ef06@sha256:79eb469838621168a6364476b96850fc9f2d353686195c010ad078fdcf29568e
 
                           maxRunTime: 1800
 
