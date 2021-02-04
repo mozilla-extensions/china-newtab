@@ -10,7 +10,6 @@ const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 XPCOMUtils.defineLazyModuleGetters(this, {
-  ContentSearch: "resource:///modules/ContentSearch.jsm",
   ContentSearchParent: "resource:///actors/ContentSearchParent.jsm",
   Services: "resource://gre/modules/Services.jsm",
 });
@@ -19,6 +18,28 @@ XPCOMUtils.defineLazyGetter(this, "ChinaContentSearch", () => {
   let ChinaContentSearch = Object.create(ContentSearch, ChinaNewtabProperties);
   ChinaContentSearch.init();
   return ChinaContentSearch;
+});
+XPCOMUtils.defineLazyGetter(this, "ContentSearch", () => {
+  const contentSearchJSM =
+    Services.vc.compare(Services.appinfo.version, "77.0") >= 0 ?
+    "resource:///actors/ContentSearchParent.jsm" :
+    "resource:///modules/ContentSearch.jsm";
+  const { ContentSearch } = ChromeUtils.import(contentSearchJSM);
+  if (!ContentSearch.receiveMessage) {
+    ContentSearch._reply = (browser, type, data) => {
+      if (browser.remoteType === "privilegedabout") {
+        browser.sendMessageToActor(type, data, "ContentSearch");
+      } else if (
+        browser.remoteType === "web" &&
+        browser.currentURI.prePath === "https://newtab.firefoxchina.cn"
+      ) {
+        browser.sendMessageToActor(type, data, "ChinaNewtabContentSearch");
+      } else {
+        throw new Error("This browser should not access ContentSearch");
+      }
+    };
+  }
+  return ContentSearch;
 });
 
 var actorsMap = new Map();
@@ -48,8 +69,15 @@ var ChinaNewtabProperties = {
 
 // Since Fx 77, see https://bugzil.la/1614738
 const ChinaNewtabContentSearchParent =
-  Services.vc.compare(Services.appinfo.version, "77.0") >= 0 ?
-  class ChinaNewtabContentSearchParent extends ContentSearchParent {} : (
+  Services.vc.compare(Services.appinfo.version, "77.0") >= 0 ? (
+class ChinaNewtabContentSearchParent extends ContentSearchParent {
+  receiveMessage(msg) {
+    // Access ContentSearch here to trigger the lazy monkey patching
+    ContentSearch;
+    return super.receiveMessage(msg);
+  }
+}
+  ) : (
 // Not really a copy of vanilla implementation
 class ChinaNewtabContentSearchParent extends JSWindowActorParent {
   receiveMessage(msg) {
