@@ -27,7 +27,12 @@ XPCOMUtils.defineLazyGetter(this, "ContentSearch", () => {
   const { ContentSearch } = ChromeUtils.import(contentSearchJSM);
   if (!ContentSearch.receiveMessage) {
     ContentSearch._reply = (browser, type, data) => {
-      if (browser.remoteType === "privilegedabout") {
+      if (
+        browser.remoteType === "privilegedabout" ||
+        // `about:privatebrowsing` is not loaded in `privilegedabout` process
+        // until Fx 86, see https://bugzil.la/1687359
+        browser.currentURI.prePath === "about:"
+      ) {
         browser.sendMessageToActor(type, data, "ContentSearch");
       } else if (
         browser.remoteType === "web" &&
