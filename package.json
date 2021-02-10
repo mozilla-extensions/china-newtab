@@ -3,10 +3,7 @@
   "version": "4.86.0",
   "description": "Customizied New Tab Page for Firefox",
   "scripts": {
-    "build": "npm-run-all clean build:web-ext build:finalize",
-    "build:finalize": "mv web-ext-artifacts/china_newtab_for_firefox-*.zip web-ext-artifacts/china-newtab.xpi",
-    "build:web-ext": "web-ext build",
-    "clean": "rimraf web-ext-artifacts",
+    "build": "web-ext build --filename china-newtab.xpi",
     "lint": "eslint --ext .js,.jsm extension"
   },
   "author": "Mozilla Online Limited",
@@ -16,8 +13,7 @@
     "eslint": "5.16.0",
     "eslint-plugin-mozilla": "1.2.1",
     "eslint-plugin-no-unsanitized": "3.0.2",
-    "npm-run-all": "4.1.5",
-    "web-ext": "4.2.0"
+    "web-ext": "5.0.0"
   },
   "webExt": {
     "build": {
