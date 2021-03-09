@@ -35,9 +35,14 @@ XPCOMUtils.defineLazyServiceGetter(
 );
 
 this.activityStreamHack = {
+  extensionId: null,
+  mutationObserverOptions: {
+    childList: true,
+  },
   newTabURL: null,
 
   init(extension) {
+    this.extensionId = extension.id;
     this.newTabURL = extension.baseURI.resolve("newtab/newtab.html");
 
     this.initNewTabOverride();
@@ -45,11 +50,26 @@ this.activityStreamHack = {
     this.initRemotePages();
   },
 
+  initMutationObserver(prefWin) {
+    let menupopup = prefWin.document.getElementById("newTabMode").menupopup;
+    if (menupopup.getElementsByAttribute("value", this.extensionId).length) {
+      return;
+    }
+
+    let mutationObserver = new prefWin.MutationObserver(this.mutationCallback.bind(this));
+    mutationObserver.observe(menupopup, this.mutationObserverOptions);
+  },
+
   initNewTabOverride() {
     // Since Fx 76, see https://bugzil.la/1619992
     this.overrideNewtab(AboutNewTab.newTabURL || aboutNewTabService.newTabURL);
-
     Services.obs.addObserver(this, "newtab-url-changed");
+
+    // Since Fx 85, see https://bugzil.la/1595858
+    if (Services.vc.compare(Services.appinfo.version, "85.0") < 0) {
+      return;
+    }
+    Services.obs.addObserver(this, "home-pane-loaded");
   },
 
   initPrefs() {
@@ -188,6 +208,36 @@ this.activityStreamHack = {
     );
   },
 
+  mutationCallback(records, observer) {
+    for (let record of records) {
+      if (record.type !== "childList") {
+        continue;
+      }
+
+      for (let addedNode of record.addedNodes) {
+        if (addedNode.value !== this.extensionId) {
+          continue;
+        }
+
+        let menulist = record.target.parentNode;
+        if (
+          menulist.getAttribute("value") === this.extensionId &&
+          !menulist.selectedItem
+        ) {
+          menulist.removeAttribute("value");
+        }
+
+        let prefWin = record.target.ownerGlobal;
+        if (prefWin.gHomePane && prefWin.gHomePane.syncFromNewTabPref) {
+          prefWin.gHomePane.syncFromNewTabPref();
+        }
+
+        observer.disconnect();
+        break;
+      }
+    }
+  },
+
   observe(subject, topic, data) {
     switch (topic) {
       case "browser-delayed-startup-finished":
@@ -195,6 +245,9 @@ this.activityStreamHack = {
         Services.tm.dispatchToMainThread(() => {
           this.initRemotePages("retry");
         });
+        break;
+      case "home-pane-loaded":
+        this.initMutationObserver(subject);
         break;
       case "newtab-url-changed":
         this.overrideNewtab(data);
