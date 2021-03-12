@@ -1,6 +1,6 @@
 {
   "name": "china-newtab",
-  "version": "4.86.0",
+  "version": "4.87.0",
   "description": "Customizied New Tab Page for Firefox",
   "scripts": {
     "build": "web-ext build --filename china-newtab.xpi",
