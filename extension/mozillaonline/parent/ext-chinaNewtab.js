@@ -314,6 +314,42 @@ this.activityStreamHack = {
   },
 };
 
+this.asRouter = {
+  init() {
+    // Available since Fx 84, see https://bugzil.la/1614465
+    if (Services.vc.compare(Services.appinfo.version, "84.0") < 0) {
+      return;
+    }
+
+    try {
+      ChromeUtils.registerWindowActor("ChinaNewtabASRouter", {
+        parent: {
+          moduleURI: `resource://${RESOURCE_HOST}/ChinaNewtabASRouterParent.jsm`,
+        },
+        child: {
+          moduleURI: `resource://${RESOURCE_HOST}/ChinaNewtabASRouterChild.jsm`,
+          events: {
+            DOMWindowCreated: {},
+          },
+        },
+        matches:  [
+          "https://newtab.firefoxchina.cn/*",
+        ],
+      });
+    } catch (ex) {
+      console.error(ex);
+    }
+  },
+
+  uninit() {
+    try {
+      ChromeUtils.unregisterWindowActor("ChinaNewtabASRouter");
+    } catch (ex) {
+      console.error(ex);
+    }
+  },
+};
+
 this.chinaNewtabFeed = {
   initialized: false,
 
@@ -869,6 +905,7 @@ this.chinaNewtab = class extends ExtensionAPI {
 
     activityStreamHack.init(extension);
 
+    asRouter.init();
     contentSearch.init(extension);
     ntpColors.init();
     searchPlugins.init();
@@ -877,6 +914,7 @@ this.chinaNewtab = class extends ExtensionAPI {
   onShutdown() {
     ntpColors.uninit();
     contentSearch.uninit();
+    asRouter.uninit();
 
     activityStreamHack.uninit();
 
