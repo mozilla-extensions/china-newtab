@@ -72,35 +72,40 @@ var ChinaNewtabProperties = {
   },
 };
 
-// Since Fx 77, see https://bugzil.la/1614738
-const ChinaNewtabContentSearchParent =
-  Services.vc.compare(Services.appinfo.version, "77.0") >= 0 ? (
-class ChinaNewtabContentSearchParent extends ContentSearchParent {
-  receiveMessage(msg) {
-    // Access ContentSearch here to trigger the lazy monkey patching
-    ContentSearch;
-    return super.receiveMessage(msg);
-  }
-}
-  ) : (
-// Not really a copy of vanilla implementation
-class ChinaNewtabContentSearchParent extends JSWindowActorParent {
-  receiveMessage(msg) {
-    // Use `this.manager.browsingContext` instead of `this.browsingContext`
-    // for Fx 68 compat, see https://bugzil.la/1557062
-    actorsMap.set(this.manager.browsingContext.id, this);
 
-    msg.target = this.manager.browsingContext.top.embedderElement;
-    ChinaContentSearch.receiveMessage(msg);
-  }
+var ChinaNewtabContentSearchParent;
+if (Services.vc.compare(Services.appinfo.version, "88.0") >= 0) {
+  // Since Fx 88, see https://bugzil.la/1697381
 
-  didDestroy() {
-    if (!this) {
-      return;
+  ChinaNewtabContentSearchParent = class extends ContentSearchParent {};
+} else if (Services.vc.compare(Services.appinfo.version, "77.0") >= 0) {
+  // Since Fx 77, see https://bugzil.la/1614738
+
+  ChinaNewtabContentSearchParent = class extends ContentSearchParent {
+    receiveMessage(msg) {
+      // Access ContentSearch here to trigger the lazy monkey patching
+      ContentSearch;
+      return super.receiveMessage(msg);
+    }
+  };
+} else {
+  // Not really a copy of vanilla implementation
+  ChinaNewtabContentSearchParent = class extends JSWindowActorParent {
+    receiveMessage(msg) {
+      // Use `this.manager.browsingContext` instead of `this.browsingContext`
+      // for Fx 68 compat, see https://bugzil.la/1557062
+      actorsMap.set(this.manager.browsingContext.id, this);
+
+      msg.target = this.manager.browsingContext.top.embedderElement;
+      ChinaContentSearch.receiveMessage(msg);
     }
 
-    actorsMap.delete(this.manager.browsingContext.id);
-  }
+    didDestroy() {
+      if (!this) {
+        return;
+      }
+
+      actorsMap.delete(this.manager.browsingContext.id);
+    }
+  };
 }
-// Not really a copy of vanilla implementation
-  );
