@@ -79,15 +79,6 @@ this.activityStreamHack = {
     switch (currentVersion) {
       case 0:
         for (let [key, val] of [
-          ["browser.newtabpage.activity-stream.discoverystream.config", JSON.stringify({
-            "collapsible": true,
-            "enabled": false,
-            "show_spocs": false,
-            "hardcoded_layout": false,
-            "personalized": false,
-            "layout_endpoint": "https://newtab.firefoxchina.cn/newtab/ds/china-basic.json",
-          })],
-          ["browser.newtabpage.activity-stream.discoverystream.enabled", false],
           ["browser.newtabpage.activity-stream.discoverystream.endpoints", [
             "https://getpocket.cdn.mozilla.net/",
             "https://spocs.getpocket.com/",
@@ -109,7 +100,6 @@ this.activityStreamHack = {
           ["browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts", false],
           ["browser.newtabpage.activity-stream.section.topstories.rows", 3],
           ["browser.newtabpage.activity-stream.topSitesRows", 2],
-          ["extensions.chinaNewtab.prefVersion", 1],
           // Disable appcache based offlintab from cehomepage
           ["moa.ntab.openInNewTab", false],
         ]) {
@@ -129,7 +119,24 @@ this.activityStreamHack = {
         if (currentVersion === 1) {
           prefsToSet.set("browser.newtabpage.activity-stream.feeds.system.topstories", true);
         }
-        prefsToSet.set("extensions.chinaNewtab.prefVersion", 2);
+
+        // intentionally no break;
+      case 2:
+        // Flip on DiscoveryStream
+        for (let [key, val] of [
+          ["browser.newtabpage.activity-stream.discoverystream.config", JSON.stringify({
+            "collapsible": true,
+            "enabled": true,
+            "show_spocs": false,
+            "hardcoded_layout": false,
+            "personalized": false,
+            "layout_endpoint": "https://newtab.firefoxchina.cn/newtab/ds/china-basic.json",
+          })],
+          ["browser.newtabpage.activity-stream.discoverystream.enabled", true],
+          ["extensions.chinaNewtab.prefVersion", 3],
+        ]) {
+          prefsToSet.set(key, val);
+        }
         break;
       default:
         break;

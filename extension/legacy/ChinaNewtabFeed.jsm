@@ -3,18 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-const EVENTS = [
-  "BLOCK",
-  "CLICK",
-  "MENU_COLLAPSE",
-  "MENU_EXPAND",
-  "MOCOCN_LESS_ROWS",
-  "MOCOCN_MORE_ROWS",
-  "OPEN_NEW_WINDOW",
-  "OPEN_PRIVATE_WINDOW",
-  "UNPIN",
-];
-const SOURCES = ["TOP_SITES", "TOP_STORIES"];
+const EVENTS = ["CLICK"];
+const SOURCES = ["CARDGRID", "TOP_SITES", "TOP_STORIES"];
 const TRACKING_BASE = "https://tracking.firefox.com.cn/china-newtab.gif";
 
 const { actionCreators: ac, actionTypes: at } = ChromeUtils.import(
