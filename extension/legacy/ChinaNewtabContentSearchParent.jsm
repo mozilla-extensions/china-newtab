@@ -14,63 +14,28 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   Services: "resource://gre/modules/Services.jsm",
 });
 
-XPCOMUtils.defineLazyGetter(this, "ChinaContentSearch", () => {
-  let ChinaContentSearch = Object.create(ContentSearch, ChinaNewtabProperties);
-  ChinaContentSearch.init();
-  return ChinaContentSearch;
-});
 XPCOMUtils.defineLazyGetter(this, "ContentSearch", () => {
-  const contentSearchJSM =
-    Services.vc.compare(Services.appinfo.version, "77.0") >= 0 ?
-    "resource:///actors/ContentSearchParent.jsm" :
-    "resource:///modules/ContentSearch.jsm";
+  const contentSearchJSM = "resource:///actors/ContentSearchParent.jsm";
   const { ContentSearch } = ChromeUtils.import(contentSearchJSM);
-  if (!ContentSearch.receiveMessage) {
-    ContentSearch._reply = (browser, type, data) => {
-      if (
-        browser.remoteType === "privilegedabout" ||
-        // `about:privatebrowsing` is not loaded in `privilegedabout` process
-        // until Fx 86, see https://bugzil.la/1687359
-        browser.currentURI.prePath === "about:"
-      ) {
-        browser.sendMessageToActor(type, data, "ContentSearch");
-      } else if (
-        browser.remoteType === "web" &&
-        browser.currentURI.prePath === "https://newtab.firefoxchina.cn"
-      ) {
-        browser.sendMessageToActor(type, data, "ChinaNewtabContentSearch");
-      } else {
-        throw new Error("This browser should not access ContentSearch");
-      }
-    };
-  }
+  ContentSearch._reply = (browser, type, data) => {
+    if (
+      browser.remoteType === "privilegedabout" ||
+      // `about:privatebrowsing` is not loaded in `privilegedabout` process
+      // until Fx 86, see https://bugzil.la/1687359
+      browser.currentURI.prePath === "about:"
+    ) {
+      browser.sendMessageToActor(type, data, "ContentSearch");
+    } else if (
+      browser.remoteType === "web" &&
+      browser.currentURI.prePath === "https://newtab.firefoxchina.cn"
+    ) {
+      browser.sendMessageToActor(type, data, "ChinaNewtabContentSearch");
+    } else {
+      throw new Error("This browser should not access ContentSearch");
+    }
+  };
   return ContentSearch;
 });
-
-var actorsMap = new Map();
-
-var ChinaNewtabProperties = {
-  _broadcast: {
-    value(type, data) {
-      for (let [id, actor] of actorsMap.entries()) {
-        try {
-          actor.sendAsyncMessage(...this._msgArgs(type, data));
-        } catch (ex) {
-          actorsMap.delete(id);
-          Cu.reportError(ex);
-        }
-      }
-    },
-  },
-  _reply: {
-    value(msg, type, data) {
-      if (!Cu.isDeadWrapper(msg.target) && msg.target.browsingContext) {
-        let actor = actorsMap.get(msg.target.browsingContext.id);
-        actor.sendAsyncMessage(...this._msgArgs(type, data));
-      }
-    },
-  },
-};
 
 
 var ChinaNewtabContentSearchParent;
@@ -78,34 +43,12 @@ if (Services.vc.compare(Services.appinfo.version, "88.0") >= 0) {
   // Since Fx 88, see https://bugzil.la/1697381
 
   ChinaNewtabContentSearchParent = class extends ContentSearchParent {};
-} else if (Services.vc.compare(Services.appinfo.version, "77.0") >= 0) {
-  // Since Fx 77, see https://bugzil.la/1614738
-
+} else {
   ChinaNewtabContentSearchParent = class extends ContentSearchParent {
     receiveMessage(msg) {
       // Access ContentSearch here to trigger the lazy monkey patching
       ContentSearch;
       return super.receiveMessage(msg);
-    }
-  };
-} else {
-  // Not really a copy of vanilla implementation
-  ChinaNewtabContentSearchParent = class extends JSWindowActorParent {
-    receiveMessage(msg) {
-      // Use `this.manager.browsingContext` instead of `this.browsingContext`
-      // for Fx 68 compat, see https://bugzil.la/1557062
-      actorsMap.set(this.manager.browsingContext.id, this);
-
-      msg.target = this.manager.browsingContext.top.embedderElement;
-      ChinaContentSearch.receiveMessage(msg);
-    }
-
-    didDestroy() {
-      if (!this) {
-        return;
-      }
-
-      actorsMap.delete(this.manager.browsingContext.id);
     }
   };
 }

@@ -11,48 +11,6 @@ const { XPCOMUtils } = ChromeUtils.import(
 );
 XPCOMUtils.defineLazyModuleGetters(this, {
   ContentSearchChild: "resource:///actors/ContentSearchChild.jsm",
-  Services: "resource://gre/modules/Services.jsm",
 });
 
-// Since Fx 77, see https://bugzil.la/1614738
-const ChinaNewtabContentSearchChild =
-  Services.vc.compare(Services.appinfo.version, "77.0") >= 0 ?
-  class ChinaNewtabContentSearchChild extends ContentSearchChild {} : (
-// Copied vanilla implementation starts
-class ChinaNewtabContentSearchChild extends JSWindowActorChild {
-  handleEvent(event) {
-    // The event gets translated into a message that
-    // is then sent to the parent.
-    if (event.type == "ContentSearchClient") {
-      // Compat fix, always send old style message on Fx 76 & earlier
-      this.sendAsyncMessage("ContentSearch", {
-        type: event.detail.type,
-        data: event.detail.data,
-      });
-    }
-  }
-
-  receiveMessage(msg) {
-    // The message gets translated into an event that
-    // is then sent to the content.
-    // Compat fix, handling old style message
-    this._fireEvent(msg.data.type, msg.data.data);
-  }
-
-  _fireEvent(type, data = null) {
-    let event = Cu.cloneInto(
-      {
-        detail: {
-          type,
-          data,
-        },
-      },
-      this.contentWindow
-    );
-    this.contentWindow.dispatchEvent(
-      new this.contentWindow.CustomEvent("ContentSearchService", event)
-    );
-  }
-}
-// Copied vanilla implementation ends
-  );
+class ChinaNewtabContentSearchChild extends ContentSearchChild {}

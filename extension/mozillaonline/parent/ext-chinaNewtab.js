@@ -61,8 +61,7 @@ this.activityStreamHack = {
   },
 
   initNewTabOverride() {
-    // Since Fx 76, see https://bugzil.la/1619992
-    this.overrideNewtab(AboutNewTab.newTabURL || aboutNewTabService.newTabURL);
+    this.overrideNewtab(AboutNewTab.newTabURL);
     Services.obs.addObserver(this, "newtab-url-changed");
 
     // Since Fx 85, see https://bugzil.la/1595858
@@ -107,8 +106,7 @@ this.activityStreamHack = {
         }
 
         // Hack to avoid sending any request to pocket endpoints, should work
-        // with `feeds.section.topstories` or `feeds.system.topstories` (since
-        // Fx 78, see https://bugzil.la/1446276) defaults to `false`
+        // with `feeds.system.topstories` defaults to `false`
         this.onAddSection = this.onAddSection.bind(this);
         SectionsManager.on(SectionsManager.ADD_SECTION, this.onAddSection);
 
@@ -188,10 +186,7 @@ this.activityStreamHack = {
         } else {
           branch = "as_existed";
         }
-      } else if (
-        branch === "init" &&
-        Services.vc.compare(Services.appinfo.version, "76.0") >= 0
-      ) {
+      } else if (branch === "init") {
         // `AboutNewTab.init` was further delayed in https://bugzil.la/1619992
         branch = "will_retry";
         Services.obs.addObserver(this, "browser-delayed-startup-finished");
@@ -272,10 +267,7 @@ this.activityStreamHack = {
       return;
     }
 
-    // Since Fx 78, see https://bugzil.la/1446276
-    let prefKey = Services.vc.compare(Services.appinfo.version, "78.0") >= 0
-      ? "browser.newtabpage.activity-stream.feeds.system.topstories"
-      : "browser.newtabpage.activity-stream.feeds.section.topstories";
+    let prefKey = "browser.newtabpage.activity-stream.feeds.system.topstories";
     Services.prefs.setBoolPref(prefKey, true);
     SectionsManager.off(event, this.onAddSection);
   },
@@ -285,12 +277,7 @@ this.activityStreamHack = {
       return;
     }
 
-    // Since Fx 76, see https://bugzil.la/1619992
-    if (AboutNewTab.hasOwnProperty("newTabURL")) {
-      AboutNewTab.newTabURL = NEWTAB_URL;
-    } else {
-      aboutNewTabService.newTabURL = NEWTAB_URL;
-    }
+    AboutNewTab.newTabURL = NEWTAB_URL;
   },
 
   setPref(key, val) {
@@ -378,19 +365,14 @@ this.chinaNewtabFeed = {
 };
 
 this.contentSearch = {
-  init(extension) {
+  init() {
     try {
-      let needsCompatChild = extension.startupReason === "ADDON_UPGRADE" &&
-                             extension.addonData.oldVersion === "4.77";
-
       ChromeUtils.registerWindowActor("ChinaNewtabContentSearch", {
         parent: {
           moduleURI: `resource://${RESOURCE_HOST}/ChinaNewtabContentSearchParent.jsm`,
         },
         child: {
-          moduleURI: (needsCompatChild
-            ? `resource://${RESOURCE_HOST}/ChinaNewtabContentSearchChildCompat.jsm`
-            : `resource://${RESOURCE_HOST}/ChinaNewtabContentSearchChild.jsm`),
+          moduleURI: `resource://${RESOURCE_HOST}/ChinaNewtabContentSearchChild.jsm`,
           events: {
             ContentSearchClient: { capture: true, wantUntrusted: true },
           },
@@ -413,10 +395,6 @@ this.ntpColors = {
   init() {
     try {
       ChromeUtils.registerWindowActor("ChinaNewtabContentTheme", {
-        // `parent` required before Fx 69, see https://bugzil.la/1552268
-        parent: {
-          moduleURI: `resource://${RESOURCE_HOST}/ChinaNewtabContentThemeParent.jsm`,
-        },
         child: {
           moduleURI: `resource://${RESOURCE_HOST}/ChinaNewtabContentThemeChild.jsm`,
           events: {
@@ -554,9 +532,7 @@ this.topSites = {
 
   get feed() {
     try {
-      // Since Fx 78, see https://bugzil.la/1634279
-      let feed = AboutNewTab.activityStream.store.feeds.get("feeds.system.topsites") ||
-                 AboutNewTab.activityStream.store.feeds.get("feeds.topsites");
+      let feed = AboutNewTab.activityStream.store.feeds.get("feeds.system.topsites");
 
       delete this.feed;
       return this.feed = feed;
@@ -913,7 +889,7 @@ this.chinaNewtab = class extends ExtensionAPI {
     activityStreamHack.init(extension);
 
     asRouter.init();
-    contentSearch.init(extension);
+    contentSearch.init();
     ntpColors.init();
     searchPlugins.init();
   }

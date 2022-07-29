@@ -28,9 +28,7 @@ class ChinaNewtabFeed {
   }
 
   get topSites() {
-    // Since Fx 78, see https://bugzil.la/1634279
-    let value = this.store.feeds.get("feeds.system.topsites") ||
-                this.store.feeds.get("feeds.topsites");
+    let value = this.store.feeds.get("feeds.system.topsites");
 
     Object.defineProperty(this, "topSites", { value });
     return this.topSites;
