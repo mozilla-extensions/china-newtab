@@ -225,7 +225,6 @@ tasks:
                                     TEMPLATE_HEAD_REF: '${template.branch}'
                                     TEMPLATE_PIP_REQUIREMENTS: taskcluster/requirements.txt
                                     TEMPLATE_REPOSITORY_TYPE: git
-                                    TEMPLATE_PIP_REQUIREMENTS: taskcluster/requirements.txt
                                     REPOSITORIES: {$json: {xpi: "XPI Manifest", template: "XPI Template"}}
                                   - $if: 'privateRepo'
                                     then:
