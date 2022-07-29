@@ -223,10 +223,10 @@ tasks:
                                     TEMPLATE_HEAD_REPOSITORY: '${template.repo}'
                                     TEMPLATE_HEAD_REV: '${template.branch}'
                                     TEMPLATE_HEAD_REF: '${template.branch}'
+                                    TEMPLATE_PIP_REQUIREMENTS: taskcluster/requirements.txt
                                     TEMPLATE_REPOSITORY_TYPE: git
                                     TEMPLATE_PIP_REQUIREMENTS: taskcluster/requirements.txt
                                     REPOSITORIES: {$json: {xpi: "XPI Manifest", template: "XPI Template"}}
-                                    HG_STORE_PATH: /builds/worker/checkouts/hg-store
                                   - $if: 'privateRepo'
                                     then:
                                         XPI_SSH_SECRET_NAME: project/xpi/xpi-github-clone-ssh
