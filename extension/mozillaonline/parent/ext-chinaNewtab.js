@@ -8,7 +8,7 @@
 const NEWTAB_URL = "https://newtab.firefoxchina.cn/newtab/as/activity-stream.html";
 const RESOURCE_HOST = "china-newtab";
 
-/* global ExtensionAPI, XPCOMUtils */
+/* global ExtensionAPI, Services, XPCOMUtils */
 XPCOMUtils.defineLazyModuleGetters(this, {
   AboutNewTab: "resource:///modules/AboutNewTab.jsm",
   ChinaNewtabFeed: `resource://${RESOURCE_HOST}/ChinaNewtabFeed.jsm`,
@@ -16,7 +16,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   RemotePageManager: "resource://gre/modules/remotepagemanager/RemotePageManagerParent.jsm",
   RemotePages: "resource://gre/modules/remotepagemanager/RemotePageManagerParent.jsm",
   SectionsManager: "resource://activity-stream/lib/SectionsManager.jsm",
-  Services: "resource://gre/modules/Services.jsm",
   TelemetryTimestamps: "resource://gre/modules/TelemetryTimestamps.jsm",
 });
 XPCOMUtils.defineLazyGlobalGetters(this, ["URL", "fetch"]);
@@ -63,11 +62,6 @@ this.activityStreamHack = {
   initNewTabOverride() {
     this.overrideNewtab(AboutNewTab.newTabURL);
     Services.obs.addObserver(this, "newtab-url-changed");
-
-    // Since Fx 85, see https://bugzil.la/1595858
-    if (Services.vc.compare(Services.appinfo.version, "85.0") < 0) {
-      return;
-    }
     Services.obs.addObserver(this, "home-pane-loaded");
   },
 
@@ -310,11 +304,6 @@ this.activityStreamHack = {
 
 this.asRouter = {
   init() {
-    // Available since Fx 84, see https://bugzil.la/1614465
-    if (Services.vc.compare(Services.appinfo.version, "84.0") < 0) {
-      return;
-    }
-
     try {
       ChromeUtils.registerWindowActor("ChinaNewtabASRouter", {
         parent: {
@@ -336,11 +325,7 @@ this.asRouter = {
   },
 
   uninit() {
-    try {
-      ChromeUtils.unregisterWindowActor("ChinaNewtabASRouter");
-    } catch (ex) {
-      console.error(ex);
-    }
+    ChromeUtils.unregisterWindowActor("ChinaNewtabASRouter");
   },
 };
 
