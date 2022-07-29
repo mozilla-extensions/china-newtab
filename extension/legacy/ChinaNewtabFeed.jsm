@@ -18,7 +18,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   PageThumbs: "resource://gre/modules/PageThumbs.jsm",
 });
 
-
 class ChinaNewtabFeed {
   get pageThumbPrefix() {
     let value = `${PageThumbs.scheme}://${PageThumbs.staticHost}/?`;
@@ -41,10 +40,7 @@ class ChinaNewtabFeed {
     }
 
     let pinnedOnly = sites.filter(site => {
-      return (
-        site &&
-        site.isPinned
-      );
+      return site && site.isPinned;
     });
 
     for (let site of pinnedOnly) {
@@ -58,10 +54,7 @@ class ChinaNewtabFeed {
     }
 
     let withoutScreenshots = pinnedOnly.filter(site => {
-      return (
-        !site.customScreenshotURL &&
-        !site.screenshot
-      );
+      return !site.customScreenshotURL && !site.screenshot;
     });
 
     if (!withoutScreenshots.length || !this.topSites) {
@@ -83,7 +76,7 @@ class ChinaNewtabFeed {
   // Originally from "resource://activity-stream/lib/Screenshots.jsm"
   async convertScreenshotForWeb(site) {
     let screenshot = null;
-    let thumbnailURL = (new URL(site.screenshot)).searchParams.get("url");
+    let thumbnailURL = new URL(site.screenshot).searchParams.get("url");
     try {
       const imgPath = PageThumbs.getThumbnailPath(thumbnailURL);
 
@@ -97,13 +90,15 @@ class ChinaNewtabFeed {
       Cu.reportError(`convertScreenshotForWeb(${site.url}) failed: ${err}`);
     }
 
-    this.store.dispatch(ac.BroadcastToContent({
-      data: { screenshot, url: site.url },
-      type: at.SCREENSHOT_UPDATED,
-      meta: {
-        isStartup: false,
-      },
-    }));
+    this.store.dispatch(
+      ac.BroadcastToContent({
+        data: { screenshot, url: site.url },
+        type: at.SCREENSHOT_UPDATED,
+        meta: {
+          isStartup: false,
+        },
+      })
+    );
   }
 
   async onAction(action) {
@@ -117,13 +112,13 @@ class ChinaNewtabFeed {
         await this.cacheExtraScreenshots(TopSites.rows);
         if (TopSites.pref) {
           let topSitesRows = TopSites.pref.collapsed
-                           ? 0
-                           : Prefs.values.topSitesRows;
+            ? 0
+            : Prefs.values.topSitesRows;
           await this.constructor.sendTracking(
             "chinaNewtab",
             "rows",
             "top_sites",
-            topSitesRows,
+            topSitesRows
           );
         }
 
@@ -134,13 +129,13 @@ class ChinaNewtabFeed {
           break;
         }
         let topStoriesRows = topStories.pref.collapsed
-                           ? 0
-                           : Prefs.values["section.topstories.rows"];
+          ? 0
+          : Prefs.values["section.topstories.rows"];
         await this.constructor.sendTracking(
           "chinaNewtab",
           "rows",
           "top_stories",
-          topStoriesRows,
+          topStoriesRows
         );
         break;
       case at.NEW_TAB_LOAD:
@@ -148,7 +143,7 @@ class ChinaNewtabFeed {
           "chinaNewtab",
           "load",
           "view",
-          "activityStream",
+          "activityStream"
         );
         break;
       case at.OPEN_LINK:
@@ -156,9 +151,11 @@ class ChinaNewtabFeed {
         break;
       case at.SCREENSHOT_UPDATED:
         let { screenshot } = action.data;
-        if (!screenshot ||
-            !screenshot.startsWith ||
-            !screenshot.startsWith(this.pageThumbPrefix)) {
+        if (
+          !screenshot ||
+          !screenshot.startsWith ||
+          !screenshot.startsWith(this.pageThumbPrefix)
+        ) {
           break;
         }
 
@@ -174,7 +171,7 @@ class ChinaNewtabFeed {
           "chinaNewtab",
           event.toLowerCase(),
           source.toLowerCase(),
-          action_position,
+          action_position
         );
         break;
       case at.TOP_SITES_PIN:
@@ -182,7 +179,7 @@ class ChinaNewtabFeed {
           "chinaNewtab",
           "saved",
           "top_sites",
-          action.data.index,
+          action.data.index
         );
         break;
       case at.TOP_SITES_UPDATED:

@@ -12,4 +12,3 @@ const { ASRouterParent } = ChromeUtils.import(
 );
 
 class ChinaNewtabASRouterParent extends ASRouterParent {}
-

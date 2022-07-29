@@ -5,7 +5,8 @@
 
 "use strict";
 
-const NEWTAB_URL = "https://newtab.firefoxchina.cn/newtab/as/activity-stream.html";
+const NEWTAB_URL =
+  "https://newtab.firefoxchina.cn/newtab/as/activity-stream.html";
 const RESOURCE_HOST = "china-newtab";
 
 /* global ExtensionAPI, Services, XPCOMUtils */
@@ -13,8 +14,10 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   AboutNewTab: "resource:///modules/AboutNewTab.jsm",
   ChinaNewtabFeed: `resource://${RESOURCE_HOST}/ChinaNewtabFeed.jsm`,
   NewTabUtils: "resource://gre/modules/NewTabUtils.jsm",
-  RemotePageManager: "resource://gre/modules/remotepagemanager/RemotePageManagerParent.jsm",
-  RemotePages: "resource://gre/modules/remotepagemanager/RemotePageManagerParent.jsm",
+  RemotePageManager:
+    "resource://gre/modules/remotepagemanager/RemotePageManagerParent.jsm",
+  RemotePages:
+    "resource://gre/modules/remotepagemanager/RemotePageManagerParent.jsm",
   SectionsManager: "resource://activity-stream/lib/SectionsManager.jsm",
   TelemetryTimestamps: "resource://gre/modules/TelemetryTimestamps.jsm",
 });
@@ -55,7 +58,9 @@ this.activityStreamHack = {
       return;
     }
 
-    let mutationObserver = new prefWin.MutationObserver(this.mutationCallback.bind(this));
+    let mutationObserver = new prefWin.MutationObserver(
+      this.mutationCallback.bind(this)
+    );
     mutationObserver.observe(menupopup, this.mutationObserverOptions);
   },
 
@@ -67,30 +72,43 @@ this.activityStreamHack = {
 
   initPrefs() {
     // Store some of the prefs in a WebExtension aware way so they're reverted on disable/uninstall?
-    let currentVersion = Services.prefs.getIntPref("extensions.chinaNewtab.prefVersion", 0);
+    let currentVersion = Services.prefs.getIntPref(
+      "extensions.chinaNewtab.prefVersion",
+      0
+    );
     let prefsToSet = new Map();
     switch (currentVersion) {
       case 0:
         for (let [key, val] of [
-          ["browser.newtabpage.activity-stream.discoverystream.endpoints", [
-            "https://getpocket.cdn.mozilla.net/",
-            "https://spocs.getpocket.com/",
-            "https://api2.firefoxchina.cn/",
-            "https://newtab.firefoxchina.cn/",
-          ].join(",")],
+          [
+            "browser.newtabpage.activity-stream.discoverystream.endpoints",
+            [
+              "https://getpocket.cdn.mozilla.net/",
+              "https://spocs.getpocket.com/",
+              "https://api2.firefoxchina.cn/",
+              "https://newtab.firefoxchina.cn/",
+            ].join(","),
+          ],
           ["browser.newtabpage.activity-stream.feeds.aboutpreferences", false],
-          ["browser.newtabpage.activity-stream.feeds.section.topstories.options", JSON.stringify({
-            hidden: false,
-            provider_icon: "highlights",
-            provider_name: "\u65b0\u95fb",
-            read_more_endpoint: "",
-            stories_endpoint: "https://api2.firefoxchina.cn/newtab/hot_news.json",
-            stories_referrer: "",
-            topics_endpoint: "",
-            show_spocs: false,
-            personalized: true,
-          })],
-          ["browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts", false],
+          [
+            "browser.newtabpage.activity-stream.feeds.section.topstories.options",
+            JSON.stringify({
+              hidden: false,
+              provider_icon: "highlights",
+              provider_name: "\u65b0\u95fb",
+              read_more_endpoint: "",
+              stories_endpoint:
+                "https://api2.firefoxchina.cn/newtab/hot_news.json",
+              stories_referrer: "",
+              topics_endpoint: "",
+              show_spocs: false,
+              personalized: true,
+            }),
+          ],
+          [
+            "browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts",
+            false,
+          ],
           ["browser.newtabpage.activity-stream.section.topstories.rows", 3],
           ["browser.newtabpage.activity-stream.topSitesRows", 2],
           // Disable appcache based offlintab from cehomepage
@@ -104,26 +122,35 @@ this.activityStreamHack = {
         this.onAddSection = this.onAddSection.bind(this);
         SectionsManager.on(SectionsManager.ADD_SECTION, this.onAddSection);
 
-        // intentionally no break;
+      // intentionally no break;
+      // eslint-disable-next-line no-fallthrough
       case 1:
         // If `currentVersion` is `0`, this pref should be set in
         // `this.onAddSection` instead of here
         if (currentVersion === 1) {
-          prefsToSet.set("browser.newtabpage.activity-stream.feeds.system.topstories", true);
+          prefsToSet.set(
+            "browser.newtabpage.activity-stream.feeds.system.topstories",
+            true
+          );
         }
 
-        // intentionally no break;
+      // intentionally no break;
+      // eslint-disable-next-line no-fallthrough
       case 2:
         // Flip on DiscoveryStream
         for (let [key, val] of [
-          ["browser.newtabpage.activity-stream.discoverystream.config", JSON.stringify({
-            "collapsible": true,
-            "enabled": true,
-            "show_spocs": false,
-            "hardcoded_layout": false,
-            "personalized": false,
-            "layout_endpoint": "https://newtab.firefoxchina.cn/newtab/ds/china-basic.json",
-          })],
+          [
+            "browser.newtabpage.activity-stream.discoverystream.config",
+            JSON.stringify({
+              collapsible: true,
+              enabled: true,
+              show_spocs: false,
+              hardcoded_layout: false,
+              personalized: false,
+              layout_endpoint:
+                "https://newtab.firefoxchina.cn/newtab/ds/china-basic.json",
+            }),
+          ],
           ["browser.newtabpage.activity-stream.discoverystream.enabled", true],
           ["extensions.chinaNewtab.prefVersion", 3],
         ]) {
@@ -174,8 +201,13 @@ this.activityStreamHack = {
         } else if (!ASMessageChannel.channel.urls.includes(NEWTAB_URL)) {
           // Hack to add another url w/o reinitialize this RemotePages channel
           ASMessageChannel.channel.urls.push(NEWTAB_URL);
-          ASMessageChannel.channel.mococnPortCreated = remotePages.prototype.portCreated.bind(ASMessageChannel.channel);
-          RemotePageManager.addRemotePageListener(NEWTAB_URL, ASMessageChannel.channel.mococnPortCreated);
+          ASMessageChannel.channel.mococnPortCreated = remotePages.prototype.portCreated.bind(
+            ASMessageChannel.channel
+          );
+          RemotePageManager.addRemotePageListener(
+            NEWTAB_URL,
+            ASMessageChannel.channel.mococnPortCreated
+          );
           branch = "as_missing";
         } else {
           branch = "as_existed";
@@ -257,7 +289,12 @@ this.activityStreamHack = {
     if (event !== SectionsManager.ADD_SECTION || id !== "topstories") {
       return;
     }
-    if (!options.options || !options.options.stories_endpoint.startsWith("https://api2.firefoxchina.cn/")) {
+    if (
+      !options.options ||
+      !options.options.stories_endpoint.startsWith(
+        "https://api2.firefoxchina.cn/"
+      )
+    ) {
       return;
     }
 
@@ -315,9 +352,7 @@ this.asRouter = {
             DOMWindowCreated: {},
           },
         },
-        matches:  [
-          "https://newtab.firefoxchina.cn/*",
-        ],
+        matches: ["https://newtab.firefoxchina.cn/*"],
       });
     } catch (ex) {
       console.error(ex);
@@ -341,7 +376,10 @@ this.chinaNewtabFeed = {
     if (AboutNewTab.activityStream) {
       let store = AboutNewTab.activityStream.store;
 
-      store._feedFactories.set("feeds.chinanewtab", () => new ChinaNewtabFeed());
+      store._feedFactories.set(
+        "feeds.chinanewtab",
+        () => new ChinaNewtabFeed()
+      );
       store.initFeed("feeds.chinanewtab", store._initAction);
     } else {
       console.error(`AboutNewTab not initialized?`);
@@ -362,9 +400,7 @@ this.contentSearch = {
             ContentSearchClient: { capture: true, wantUntrusted: true },
           },
         },
-        matches: [
-          "https://newtab.firefoxchina.cn/*",
-        ],
+        matches: ["https://newtab.firefoxchina.cn/*"],
       });
     } catch (ex) {
       console.error(ex);
@@ -386,9 +422,7 @@ this.ntpColors = {
             pageshow: { mozSystemGroup: true },
           },
         },
-        matches: [
-          "https://newtab.firefoxchina.cn/*",
-        ],
+        matches: ["https://newtab.firefoxchina.cn/*"],
       });
     } catch (ex) {
       console.error(ex);
@@ -418,13 +452,13 @@ this.searchPlugins = {
     try {
       let engine = Services.search.getEngineByName("\u767e\u5ea6");
       let newtabUrl = engine.getSubmission("TEST", null, "newtab").uri.spec;
-      searchTN = (new URL(newtabUrl)).searchParams.get("tn") || "notset";
+      searchTN = new URL(newtabUrl).searchParams.get("tn") || "notset";
     } catch (ex) {
       Cu.reportError(ex);
       return searchTN;
     }
     delete this.searchTN;
-    return this.searchTN = searchTN;
+    return (this.searchTN = searchTN);
   },
 
   async init() {
@@ -499,28 +533,30 @@ this.topSites = {
     "9355218c": [5],
     "96bc9794": [4],
     "9f4632fb": [6, 7],
-    "a9ab9324": [4],
-    "a4f13a05": [6], // as-icons
-    "adce6b03": [1],
-    "b18eca4f": [4],
-    "bc4ba8bf": [6],
-    "ca31f5d3": [4],
-    "e78f8151": [1], // as-icons
-    "e6f12b12": [4],
-    "ef925e06": [0],
-    "f0ff22c0": [5, 6],
-    "f243aa87": [4],
-    "f3726955": [4],
-    "ff2bdf2c": [5],
+    a9ab9324: [4],
+    a4f13a05: [6], // as-icons
+    adce6b03: [1],
+    b18eca4f: [4],
+    bc4ba8bf: [6],
+    ca31f5d3: [4],
+    e78f8151: [1], // as-icons
+    e6f12b12: [4],
+    ef925e06: [0],
+    f0ff22c0: [5, 6],
+    f243aa87: [4],
+    f3726955: [4],
+    ff2bdf2c: [5],
   },
   prefKey: "browser.newtabpage.pinned",
 
   get feed() {
     try {
-      let feed = AboutNewTab.activityStream.store.feeds.get("feeds.system.topsites");
+      let feed = AboutNewTab.activityStream.store.feeds.get(
+        "feeds.system.topsites"
+      );
 
       delete this.feed;
-      return this.feed = feed;
+      return (this.feed = feed);
     } catch (ex) {
       console.error(ex);
       return null;
@@ -528,7 +564,8 @@ this.topSites = {
   },
 
   convertSite(site) {
-    let customScreenshotURL = site.attachment &&
+    let customScreenshotURL =
+      site.attachment &&
       site.attachment.location &&
       site.id &&
       `${this.attachmentBase}${site.attachment.location}?mococn_dp=${site.id}`;
@@ -554,12 +591,12 @@ this.topSites = {
       idByUrl.set(currentSite.url, currentSite.id);
     }
 
-    return {currentById, idByUrl};
+    return { currentById, idByUrl };
   },
 
   getDefaultPosition(site) {
     try {
-      return (new URL(site.customScreenshotURL)).searchParams.get("mococn_dp");
+      return new URL(site.customScreenshotURL).searchParams.get("mococn_dp");
     } catch (ex) {
       return null;
     }
@@ -569,28 +606,30 @@ this.topSites = {
     let commonPrefix = `${this.attachmentBase}/data/thumbnails/`;
     if (site.customScreenshotURL.startsWith(commonPrefix)) {
       let prefix = site.customScreenshotURL.substr(commonPrefix.length, 8);
-      return {positions: this.backfillPrefixes[prefix], prefix};
+      return { positions: this.backfillPrefixes[prefix], prefix };
     }
 
     let distPrefix = `${this.attachmentBase}/static/img/as-icons/`;
     if (site.customScreenshotURL.startsWith(distPrefix)) {
       let prefix = site.customScreenshotURL.substr(distPrefix.length, 8);
-      return {positions: this.backfillPrefixes[prefix], prefix};
+      return { positions: this.backfillPrefixes[prefix], prefix };
     }
 
-    return {prefix: "(notset)"};
+    return { prefix: "(notset)" };
   },
 
   async handleBackfill(data) {
     let backfillData = undefined;
-    let {currentById: missingById, idByUrl} = this.getCurrentMaps(data);
+    let { currentById: missingById, idByUrl } = this.getCurrentMaps(data);
     let guessByUrl = new Map();
 
     let cachedSites = await this.feed.pinnedCache.request();
     for (let [index, cachedSite] of cachedSites.entries()) {
-      if (!cachedSite ||
-          !cachedSite.customScreenshotURL ||
-          !cachedSite.customScreenshotURL.startsWith(this.attachmentBase)) {
+      if (
+        !cachedSite ||
+        !cachedSite.customScreenshotURL ||
+        !cachedSite.customScreenshotURL.startsWith(this.attachmentBase)
+      ) {
         continue;
       }
 
@@ -605,7 +644,7 @@ this.topSites = {
       if (siteId && site) {
         missingById.delete(siteId);
         // Only backfill one site at a time
-        backfillData = backfillData || {index, site};
+        backfillData = backfillData || { index, site };
         continue;
       }
 
@@ -618,14 +657,15 @@ this.topSites = {
       this.sendTracking("backfill", "unknownPrefix", `${guess.prefix}`);
     }
 
-    if ((
-      guessByUrl.size &&
-      (await this.maybeFakeUpdate(data, guessByUrl, missingById))
-    ) || !backfillData) {
+    if (
+      (guessByUrl.size &&
+        (await this.maybeFakeUpdate(data, guessByUrl, missingById))) ||
+      !backfillData
+    ) {
       return;
     }
 
-    await this.feed.pin({data: backfillData});
+    await this.feed.pin({ data: backfillData });
     this.sendTracking("backfill", "defaultPosition", `${backfillData.index}`);
   },
 
@@ -647,7 +687,7 @@ this.topSites = {
       return;
     }
     this.feed.pinnedCache.expire();
-    this.feed.refresh({broadcast: true});
+    this.feed.refresh({ broadcast: true });
   },
 
   async handleEvent(evt) {
@@ -656,8 +696,10 @@ this.topSites = {
     }
 
     // This should work for fresh profiles
-    if (Services.prefs.prefHasUserValue(this.prefKey) &&
-        Services.prefs.getStringPref(this.prefKey) !== "[]") {
+    if (
+      Services.prefs.prefHasUserValue(this.prefKey) &&
+      Services.prefs.getStringPref(this.prefKey) !== "[]"
+    ) {
       await this.handleUpdated(evt.data);
     } else {
       await this.handleCreated(evt.data);
@@ -670,9 +712,9 @@ this.topSites = {
       return;
     }
 
-    let {currentById, idByUrl} = this.getCurrentMaps(data);
+    let { currentById, idByUrl } = this.getCurrentMaps(data);
     let updatedIdByUrl = new Map();
-    for (let {old: oldSite, new: newSite} of data.updated) {
+    for (let { old: oldSite, new: newSite } of data.updated) {
       updatedIdByUrl.set(oldSite.url, newSite.id);
     }
 
@@ -688,52 +730,63 @@ this.topSites = {
     try {
       Services.prefs.setBoolPref(ctrlPrefKey, false);
       let cachedSites = await this.feed.pinnedCache.request();
-      await Promise.all(cachedSites.map(async (cachedSite, index) => {
-        try {
-          if (!cachedSite ||
-              !cachedSite.customScreenshotURL ||
-              !cachedSite.customScreenshotURL.startsWith(this.attachmentBase)) {
-            counts.usredit += 1;
-            return;
-          }
-
-          if (cachedSite.customScreenshotURL === "https://offlintab.firefoxchina.cnundefined") {
-            await this.feed.pin({data: {
-              index,
-              site: {
-                customScreenshotURL: null,
-                label: cachedSite.label,
-                url: cachedSite.url,
-              },
-            }});
-            counts.bug2714 += 1;
-            return;
-          }
-
-          let site = currentById.get(
-            this.getDefaultPosition(cachedSite) ||
-            updatedIdByUrl.get(cachedSite.url) ||
-            idByUrl.get(cachedSite.url)
-          );
-          if (site) {
+      await Promise.all(
+        cachedSites.map(async (cachedSite, index) => {
+          try {
             if (
-              !site.customScreenshotURL.startsWith(cachedSite.customScreenshotURL) ||
-              site.label !== cachedSite.label ||
-              site.url !== cachedSite.url
+              !cachedSite ||
+              !cachedSite.customScreenshotURL ||
+              !cachedSite.customScreenshotURL.startsWith(this.attachmentBase)
             ) {
-              console.log(`${cachedSite.url} => ${site.url}`);
-              await this.feed.pin({data: {index, site}});
-              counts.updated += 1;
-            } else {
-              counts.current += 1;
+              counts.usredit += 1;
+              return;
             }
-          } else {
-            counts.nomatch += 1;
+
+            if (
+              cachedSite.customScreenshotURL ===
+              "https://offlintab.firefoxchina.cnundefined"
+            ) {
+              await this.feed.pin({
+                data: {
+                  index,
+                  site: {
+                    customScreenshotURL: null,
+                    label: cachedSite.label,
+                    url: cachedSite.url,
+                  },
+                },
+              });
+              counts.bug2714 += 1;
+              return;
+            }
+
+            let site = currentById.get(
+              this.getDefaultPosition(cachedSite) ||
+                updatedIdByUrl.get(cachedSite.url) ||
+                idByUrl.get(cachedSite.url)
+            );
+            if (site) {
+              if (
+                !site.customScreenshotURL.startsWith(
+                  cachedSite.customScreenshotURL
+                ) ||
+                site.label !== cachedSite.label ||
+                site.url !== cachedSite.url
+              ) {
+                console.log(`${cachedSite.url} => ${site.url}`);
+                await this.feed.pin({ data: { index, site } });
+                counts.updated += 1;
+              } else {
+                counts.current += 1;
+              }
+            } else {
+              counts.nomatch += 1;
+            }
+          } catch (ex) {
+            console.error(ex);
           }
-        } catch (ex) {
-          console.error(ex);
-        }
-      }));
+        })
+      );
     } catch (ex) {
       console.error(ex);
     } finally {
@@ -793,9 +846,10 @@ this.topSites = {
       status.filter(item => item === 0).length === 1
     ) {
       let altPosition = status.indexOf(0);
-      let url = counts.ambiguous.keys().next().value ||
-                counts.conflict.keys().next().value ||
-                counts.noidea.keys().next().value;
+      let url =
+        counts.ambiguous.keys().next().value ||
+        counts.conflict.keys().next().value ||
+        counts.noidea.keys().next().value;
 
       if (
         missingById.has(`${altPosition}`) &&
@@ -808,12 +862,16 @@ this.topSites = {
       }
     }
 
-    this.sendTracking("backfill", "status", [
-      status.join(""),
-      counts.noidea.size,
-    ].join("|"));
+    this.sendTracking(
+      "backfill",
+      "status",
+      [status.join(""), counts.noidea.size].join("|")
+    );
     if (counts.ambiguous.size + counts.conflict.size + counts.noidea.size) {
-      let matchedSum = Array.from(counts.matched.values()).reduce((x, y) => x + y, 0);
+      let matchedSum = Array.from(counts.matched.values()).reduce(
+        (x, y) => x + y,
+        0
+      );
 
       this.sendTracking(
         "backfill",
@@ -837,8 +895,8 @@ this.topSites = {
     // Fake an update from cached url to guessed url
     for (let [url, guessedPositions] of guessByUrl.entries()) {
       data.updated.push({
-        "old": {url},
-        "new": {id: `${guessedPositions[0]}`},
+        old: { url },
+        new: { id: `${guessedPositions[0]}` },
       });
     }
     // Nothing to update, and nobody want no OOM from an infinite loop
@@ -865,11 +923,13 @@ this.topSites = {
 
 this.chinaNewtab = class extends ExtensionAPI {
   onStartup() {
-    let {extension} = this;
+    let { extension } = this;
 
     this.flushCacheOnUpgrade(extension);
-    resProto.setSubstitution(RESOURCE_HOST,
-      Services.io.newURI("legacy/", null, extension.rootURI));
+    resProto.setSubstitution(
+      RESOURCE_HOST,
+      Services.io.newURI("legacy/", null, extension.rootURI)
+    );
 
     activityStreamHack.init(extension);
 

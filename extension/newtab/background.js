@@ -22,7 +22,8 @@
 
   async function getLatestData() {
     try {
-      let url = "https://offlintab.firefoxchina.cn/data/master-ii/defaultdials-0.json";
+      let url =
+        "https://offlintab.firefoxchina.cn/data/master-ii/defaultdials-0.json";
       let defaultDials = await (await fetch(url)).json();
 
       return Object.keys(defaultDials).map(index => {
@@ -34,17 +35,19 @@
     }
   }
 
-  function isReallyUpdated({ old: oldValue, new: newValue = {}}) {
+  function isReallyUpdated({ old: oldValue, new: newValue = {} }) {
     // Should goes into `created`, which we don't really care, for now
     if (!oldValue) {
       return false;
     }
 
-    if (oldValue.id === newValue.id &&
-        oldValue.label === newValue.label &&
-        oldValue.url === newValue.url &&
-        (oldValue.attachment || {}).location ===
-        (newValue.attachment || {}).location) {
+    if (
+      oldValue.id === newValue.id &&
+      oldValue.label === newValue.label &&
+      oldValue.url === newValue.url &&
+      (oldValue.attachment || {}).location ===
+        (newValue.attachment || {}).location
+    ) {
       return false;
     }
 
@@ -56,16 +59,19 @@
       return;
     }
 
-    data.updated = Object.keys(changes).filter(changedId => {
-      return changedId.startsWith(STORAGE_PREFIX);
-    }).map(changedId => {
-      let change = changes[changedId];
+    data.updated = Object.keys(changes)
+      .filter(changedId => {
+        return changedId.startsWith(STORAGE_PREFIX);
+      })
+      .map(changedId => {
+        let change = changes[changedId];
 
-      return {
-        "old": change.oldValue,
-        "new": change.newValue,
-      };
-    }).filter(isReallyUpdated);
+        return {
+          old: change.oldValue,
+          new: change.newValue,
+        };
+      })
+      .filter(isReallyUpdated);
 
     console.log(data);
     browser.mozillaonline.chinaNewtab.updateTopSites({ data });
@@ -73,7 +79,7 @@
 
   async function update() {
     data = {
-      current: (await getLatestData()),
+      current: await getLatestData(),
     };
     if (!data.current) {
       setTimeout(update, TIMEOUT_RETRY);
