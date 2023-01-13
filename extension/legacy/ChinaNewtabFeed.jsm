@@ -87,7 +87,7 @@ class ChinaNewtabFeed {
         screenshot = { path: imgPath, data: fileContents };
       }
     } catch (err) {
-      Cu.reportError(`convertScreenshotForWeb(${site.url}) failed: ${err}`);
+      console.error(`convertScreenshotForWeb(${site.url}) failed: ${err}`);
     }
 
     this.store.dispatch(

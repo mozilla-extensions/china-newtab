@@ -454,7 +454,7 @@ this.searchPlugins = {
       let newtabUrl = engine.getSubmission("TEST", null, "newtab").uri.spec;
       searchTN = new URL(newtabUrl).searchParams.get("tn") || "notset";
     } catch (ex) {
-      Cu.reportError(ex);
+      console.error(ex);
       return searchTN;
     }
     delete this.searchTN;
