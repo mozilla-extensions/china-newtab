@@ -15,6 +15,7 @@ const { XPCOMUtils } = ChromeUtils.import(
 );
 XPCOMUtils.defineLazyGlobalGetters(this, ["fetch"]);
 XPCOMUtils.defineLazyModuleGetters(this, {
+  AboutNewTab: "resource:///modules/AboutNewTab.jsm",
   PageThumbs: "resource://gre/modules/PageThumbs.jsm",
 });
 
@@ -204,4 +205,19 @@ class ChinaNewtabFeed {
   }
 }
 
-const EXPORTED_SYMBOLS = ["ChinaNewtabFeed"];
+function ChinaNewtabFeedInit() {
+  if (AboutNewTab.activityStream) {
+    const feedKey = "feeds.chinanewtab";
+    let store = AboutNewTab.activityStream.store;
+    if (store.feeds.has(feedKey)) {
+      return;
+    }
+
+    store._feedFactories.set(feedKey, () => new ChinaNewtabFeed());
+    store.initFeed(feedKey, store._initAction);
+  } else {
+    console.error(`AboutNewTab not initialized?`);
+  }
+}
+
+const EXPORTED_SYMBOLS = ["ChinaNewtabFeed", "ChinaNewtabFeedInit"];

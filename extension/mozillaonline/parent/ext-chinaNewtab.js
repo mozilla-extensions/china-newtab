@@ -13,6 +13,7 @@ const RESOURCE_HOST = "china-newtab";
 XPCOMUtils.defineLazyModuleGetters(this, {
   AboutNewTab: "resource:///modules/AboutNewTab.jsm",
   ChinaNewtabFeed: `resource://${RESOURCE_HOST}/ChinaNewtabFeed.jsm`,
+  ChinaNewtabFeedInit: `resource://${RESOURCE_HOST}/ChinaNewtabFeed.jsm`,
   NewTabUtils: "resource://gre/modules/NewTabUtils.jsm",
   RemotePageManager:
     "resource://gre/modules/remotepagemanager/RemotePageManagerParent.jsm",
@@ -35,6 +36,37 @@ XPCOMUtils.defineLazyServiceGetter(
   "@mozilla.org/network/protocol;1?name=resource",
   "nsISubstitutingProtocolHandler"
 );
+
+this.aboutNewtab = {
+  init() {
+    try {
+      ChromeUtils.registerWindowActor("ChinaNewtabAboutNewTab", {
+        parent: {
+          esModuleURI: `resource://${RESOURCE_HOST}/ChinaNewtabAboutNewTabParent.sys.mjs`,
+        },
+        child: {
+          esModuleURI: `resource://${RESOURCE_HOST}/ChinaNewtabAboutNewTabChild.sys.mjs`,
+          events: {
+            DOMDocElementInserted: {},
+            load: { capture: true },
+            unload: { capture: true },
+          },
+        },
+        matches: ["https://newtab.firefoxchina.cn/*"],
+      });
+    } catch (ex) {
+      console.error(ex);
+    }
+  },
+
+  uninit() {
+    try {
+      ChromeUtils.unregisterWindowActor("ChinaNewtabAboutNewTab");
+    } catch (ex) {
+      console.error(ex);
+    }
+  },
+};
 
 this.activityStreamHack = {
   extensionId: null,
@@ -179,7 +211,11 @@ this.activityStreamHack = {
       console.error(ex);
     }
     try {
-      if (AboutNewTab.pageListener) {
+      if (!AboutNewTab.hasOwnProperty("pageListener")) {
+        // Since Fx 114, see https://bugzil.la/1814210
+        branch = "pl_no_more";
+        aboutNewtab.init();
+      } else if (AboutNewTab.pageListener) {
         // After `AboutNewTab.init`
         let urls = AboutNewTab.pageListener.urls;
         if (!urls.includes(NEWTAB_URL)) {
@@ -364,29 +400,6 @@ this.asRouter = {
   },
 };
 
-this.chinaNewtabFeed = {
-  initialized: false,
-
-  init() {
-    if (this.initialized) {
-      return;
-    }
-    this.initialized = true;
-
-    if (AboutNewTab.activityStream) {
-      let store = AboutNewTab.activityStream.store;
-
-      store._feedFactories.set(
-        "feeds.chinanewtab",
-        () => new ChinaNewtabFeed()
-      );
-      store.initFeed("feeds.chinanewtab", store._initAction);
-    } else {
-      console.error(`AboutNewTab not initialized?`);
-    }
-  },
-};
-
 this.contentSearch = {
   init() {
     try {
@@ -434,17 +447,22 @@ this.ntpColors = {
   },
 };
 
-this.remotePages = class extends RemotePages {
-  portCreated(port) {
-    if (port.url === NEWTAB_URL) {
-      chinaNewtabFeed.init();
-    }
+XPCOMUtils.defineLazyGetter(
+  this,
+  "remotePages",
+  () =>
+    class extends RemotePages {
+      portCreated(port) {
+        if (port.url === NEWTAB_URL) {
+          ChinaNewtabFeedInit();
+        }
 
-    // Previously also used to hack the url reported to telemetry
-    // by modifying `target` of the "RemotePage:Init" message.
-    return super.portCreated(port);
-  }
-};
+        // Previously also used to hack the url reported to telemetry
+        // by modifying `target` of the "RemotePage:Init" message.
+        return super.portCreated(port);
+      }
+    }
+);
 
 this.searchPlugins = {
   get searchTN() {
@@ -943,6 +961,7 @@ this.chinaNewtab = class extends ExtensionAPI {
     ntpColors.uninit();
     contentSearch.uninit();
     asRouter.uninit();
+    aboutNewtab.uninit();
 
     activityStreamHack.uninit();
 
