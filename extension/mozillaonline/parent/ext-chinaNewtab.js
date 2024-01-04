@@ -447,7 +447,7 @@ this.ntpColors = {
   },
 };
 
-XPCOMUtils.defineLazyGetter(
+ChromeUtils.defineLazyGetter(
   this,
   "remotePages",
   () =>
