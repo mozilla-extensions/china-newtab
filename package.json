@@ -4,6 +4,7 @@
   "description": "Customizied New Tab Page for Firefox",
   "scripts": {
     "build": "web-ext build --filename china-newtab.xpi",
+    "start": "web-ext run --verbose --pref devtools.console.stdout.chrome=true",
     "lint": "eslint --ext .js,.jsm extension"
   },
   "author": "Mozilla Online Limited",
