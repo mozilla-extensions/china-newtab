@@ -6,7 +6,6 @@
       "update_url": "https://archive.mozilla.org/pub/cn_pack/addons.json"
     }
   },
-  "background": {},
   "default_locale": "en_US",
   "description": "__MSG_extensionDescription__",
   "homepage_url": "http://www.firefox.com.cn/",
