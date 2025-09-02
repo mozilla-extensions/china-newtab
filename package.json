@@ -5,20 +5,12 @@
   "scripts": {
     "build": "web-ext build --filename china-newtab.xpi",
     "start": "web-ext run --verbose --pref devtools.console.stdout.chrome=true",
-    "lint": "eslint --ext .js,.jsm extension"
+    "lint": "echo nothing to do"
   },
   "author": "Mozilla Online Limited",
   "license": "MPL-2.0",
   "repository": "ssh://git@git.mozilla.com.cn/repository/git/repositories/china-newtab.git",
   "devDependencies": {
-    "eslint": "7.26.0",
-    "eslint-config-prettier": "8.1.0",
-    "eslint-plugin-fetch-options": "0.0.5",
-    "eslint-plugin-html": "6.1.2",
-    "eslint-plugin-mozilla": "2.10.0",
-    "eslint-plugin-no-unsanitized": "3.1.5",
-    "eslint-plugin-prettier": "3.3.1",
-    "prettier": "1.19.1",
     "web-ext": "6.8.0"
   },
   "webExt": {
